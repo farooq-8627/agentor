@@ -13,6 +13,7 @@ import {
   User,
   X,
   Building2,
+  MessageCircle,
 } from "lucide-react";
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 
@@ -43,6 +44,11 @@ const navigationItems = [
     icon: Newspaper,
     label: "Feed",
     href: "/feed",
+  },
+  {
+    icon: MessageCircle,
+    label: "Chat",
+    href: "/messaging",
   },
   {
     icon: User,
