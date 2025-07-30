@@ -84,35 +84,12 @@ export function Sidebar({
       data-collapsed={isCollapsed}
       className="relative group flex flex-col h-full bg-muted/10 dark:bg-muted/20 "
     >
-      <div className="flex justify-between p-2">
-        <div className="flex gap-2 items-center text-2xl">
+      <div className="flex justify-between p-2 border-b border-zinc-200 dark:border-zinc-800 py-5">
+        <div className="flex gap-2 items-center text-2xl pl-2">
           <p className="font-medium">Chats</p>
-          <span className="text-zinc-300">({chats.length})</span>
-        </div>
-
-        <div>
-          <Link
-            href="#"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "icon" }),
-              "h-9 w-9"
-            )}
-          >
-            <MoreHorizontal size={20} />
-          </Link>
-
-          <Link
-            href="#"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "icon" }),
-              "h-9 w-9"
-            )}
-          >
-            <SquarePen size={20} />
-          </Link>
         </div>
       </div>
-      <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
+      <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2 pt-4">
         {chats.map((chat, index) => {
           const lastMessage =
             chat.messages.length > 0

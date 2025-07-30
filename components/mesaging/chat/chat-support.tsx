@@ -7,15 +7,15 @@ import {
   ChatBubble,
   ChatBubbleAvatar,
   ChatBubbleMessage,
-} from "./chat/chat-bubble";
+} from "@/components/mesaging/chat/chat/chat-bubble";
 import {
   ExpandableChat,
   ExpandableChatHeader,
   ExpandableChatBody,
   ExpandableChatFooter,
-} from "./chat/expandable-chat";
-import { ChatInput } from "./chat/chat-input";
-import { ChatMessageList } from "./chat/chat-message-list";
+} from "@/components/mesaging/chat/chat/expandable-chat";
+import { ChatInput } from "@/components/mesaging/chat/chat/chat-input";
+import { ChatMessageList } from "@/components/mesaging/chat/chat/chat-message-list";
 
 import { AnimatePresence, motion } from "framer-motion";
 

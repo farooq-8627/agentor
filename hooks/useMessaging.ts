@@ -4,17 +4,18 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import PartySocket from "partysocket";
 
-export interface ChatMessage {
+export interface ChatMessageType {
   id: string;
   text: string;
   from: {
     id: string;
-    name?: string;
+    name: string;
     avatar?: string;
   };
   at: number;
   type?: "text" | "image" | "file";
   edited?: boolean;
+  editedAt?: number;
   reactions?: Record<string, string[]>;
 }
 
@@ -31,7 +32,7 @@ export interface ChatUser {
 export interface ChatRoom {
   id: string;
   participants: string[];
-  messages: ChatMessage[];
+  messages: ChatMessageType[];
   users: ChatUser[];
   typingUsers: Set<string>;
 }

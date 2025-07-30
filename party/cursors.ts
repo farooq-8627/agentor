@@ -53,7 +53,7 @@ export default class CursorsServer implements Party.Server {
     // On connect, send a "sync" message to the new connection
     // Pull the cursor from all websocket attachments, excluding self
     let cursors = <CursorsMap>{};
-    for (const socket of this.party.getConnections<CursorState>()) {
+    for (const socket of Array.from(this.party.getConnections<CursorState>())) {
       const state = socket.state || {};
       if (
         socket.id !== connection.id &&
