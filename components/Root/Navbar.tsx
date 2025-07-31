@@ -125,8 +125,15 @@ export function Navbar() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <Link href="/" className="text-xl font-semibold text-white">
-                Agentor
+              <Link href="/" className="flex items-center space-x-3 group">
+                {/* Logo Icon */}
+                <div className="w-8 h-8 bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <span className="text-white font-bold text-sm">A</span>
+                </div>
+                {/* Title */}
+                <span className="text-xl font-semibold text-white group-hover:text-violet-300 transition-colors">
+                  Agentor
+                </span>
               </Link>
             </div>
 

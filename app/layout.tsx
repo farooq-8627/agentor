@@ -66,7 +66,7 @@ export default function RootLayout({
             <div className="absolute inset-0 bg-gradient-to-bl from-transparent via-violet-950/10 to-purple-950/20"></div>
 
             {/* Animated gradient orbs for premium effect */}
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl animate-pulse"></div>
+            {/* <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl animate-pulse"></div> */}
             <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-600/8 rounded-full blur-3xl animate-pulse delay-500"></div>
 

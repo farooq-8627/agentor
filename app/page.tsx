@@ -1,7 +1,9 @@
 "use client";
 
+import React, { memo, useState, useEffect, useMemo } from "react";
 import { Navbar } from "@/components/Root/Navbar";
 import { SplineScene } from "@/components/UI/splite";
+import { FeatureCard } from "@/components/LandingComponents/FeatureCard";
 import { Button } from "@/components/UI/button";
 import { Badge } from "@/components/UI/badge";
 import {
@@ -14,156 +16,296 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
+import { useScrollOptimization } from "@/hooks/useScrollOptimization";
+
+// Performance detection hook
+function usePerformanceMode() {
+  const [lowPerformanceMode, setLowPerformanceMode] = useState(false);
+
+  useEffect(() => {
+    // Check device capabilities
+    const checkPerformance = () => {
+      const isLowEnd =
+        navigator.hardwareConcurrency <= 2 ||
+        ("connection" in navigator &&
+          (navigator.connection as any)?.effectiveType === "slow-2g");
+
+      setLowPerformanceMode(isLowEnd);
+    };
+
+    checkPerformance();
+  }, []);
+
+  return lowPerformanceMode;
+}
+
+// Memoized feature data
+const FEATURES_DATA = [
+  {
+    icon: Users,
+    title: "Expert Network",
+    description:
+      "Connect with verified automation specialists, AI engineers, and industry experts who can bring your vision to life.",
+    gradient: { from: "violet-500/10", to: "purple-500/10" },
+    iconColor: "violet-400",
+    borderColor: "violet-500/20",
+    hoverBorderColor: "violet-400/40",
+  },
+  {
+    icon: Zap,
+    title: "AI-Powered Matching",
+    description:
+      "Our intelligent algorithm analyzes your requirements and matches you with the perfect experts and solutions for your project.",
+    gradient: { from: "purple-500/10", to: "indigo-500/10" },
+    iconColor: "purple-400",
+    borderColor: "purple-500/20",
+    hoverBorderColor: "purple-400/40",
+  },
+  {
+    icon: Target,
+    title: "Smart Recommendations",
+    description:
+      "Get personalized recommendations for tools, services, and experts based on your industry, goals, and previous successful projects.",
+    gradient: { from: "indigo-500/10", to: "violet-500/10" },
+    iconColor: "indigo-400",
+    borderColor: "indigo-500/20",
+    hoverBorderColor: "indigo-400/40",
+  },
+  {
+    icon: CheckCircle,
+    title: "Verified Professionals",
+    description:
+      "All experts are thoroughly vetted with verified credentials, portfolios, and client reviews to ensure quality and reliability.",
+    gradient: { from: "violet-500/10", to: "purple-500/10" },
+    iconColor: "violet-400",
+    borderColor: "violet-500/20",
+    hoverBorderColor: "violet-400/40",
+  },
+  {
+    icon: Sparkles,
+    title: "Innovation Hub",
+    description:
+      "Stay ahead with access to cutting-edge AI tools, emerging technologies, and industry insights from thought leaders.",
+    gradient: { from: "purple-500/10", to: "indigo-500/10" },
+    iconColor: "purple-400",
+    borderColor: "purple-500/20",
+    hoverBorderColor: "purple-400/40",
+  },
+  {
+    icon: ArrowRight,
+    title: "Seamless Integration",
+    description:
+      "Integrate seamlessly with your existing workflows and tools through our comprehensive API and plugin ecosystem.",
+    gradient: { from: "indigo-500/10", to: "violet-500/10" },
+    iconColor: "indigo-400",
+    borderColor: "indigo-500/20",
+    hoverBorderColor: "indigo-400/40",
+  },
+] as const;
+
+// Memoized Steps Component
+const StepsSection = memo(() => (
+  <div className="grid lg:grid-cols-3 gap-8">
+    {[
+      {
+        number: 1,
+        title: "Define Your Needs",
+        description:
+          "Tell us about your automation goals, industry requirements, and project scope. Our AI analyzes your needs to find the perfect matches.",
+        gradient: "from-violet-500 to-purple-500",
+      },
+      {
+        number: 2,
+        title: "Connect & Collaborate",
+        description:
+          "Browse curated recommendations, review expert profiles, and connect with verified professionals who match your specific requirements.",
+        gradient: "from-purple-500 to-indigo-500",
+      },
+      {
+        number: 3,
+        title: "Launch & Scale",
+        description:
+          "Work together to build, deploy, and scale your automation solutions. Track progress and measure success with built-in analytics.",
+        gradient: "from-indigo-500 to-violet-500",
+      },
+    ].map((step, index) => (
+      <div key={step.number} className="text-center group">
+        <div className="relative mb-8">
+          <div
+            className={`w-20 h-20 bg-gradient-to-r ${step.gradient} rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform`}
+          >
+            <span className="text-2xl font-bold text-white">{step.number}</span>
+          </div>
+          {index < 2 && (
+            <div className="absolute top-10 left-1/2 w-full h-0.5 bg-gradient-to-r from-violet-500/50 to-transparent hidden lg:block" />
+          )}
+        </div>
+        <h3 className="text-2xl font-semibold text-white mb-4">{step.title}</h3>
+        <p className="text-gray-300 text-lg">{step.description}</p>
+      </div>
+    ))}
+  </div>
+));
+
+StepsSection.displayName = "StepsSection";
+
+// Memoized Hero Content
+const HeroContent = memo(({ isSignedIn }: { isSignedIn: boolean }) => (
+  <div className="text-center lg:text-left space-y-8">
+    <div className="space-y-6">
+      <Badge
+        variant="secondary"
+        className="bg-violet-500/10 text-violet-300 border-violet-500/20 fade-in-optimized"
+      >
+        <Sparkles className="w-4 h-4 mr-2" />
+        AI-Powered Automation Platform
+      </Badge>
+
+      <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight">
+        <span className="bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
+          Connect with
+        </span>
+        <br />
+        <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
+          AI Automation
+        </span>
+        <br />
+        <span className="bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
+          Experts
+        </span>
+      </h1>
+
+      <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+        Join the world&apos;s largest platform connecting businesses with
+        verified AI automation specialists. Transform your operations with
+        cutting-edge solutions.
+      </p>
+    </div>
+
+    <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+      {isSignedIn ? (
+        <Link href="/feed">
+          <Button className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl shadow-violet-500/25 group px-8 py-4 text-lg">
+            Explore Platform
+            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </Link>
+      ) : (
+        <Link href="/sign-up">
+          <Button className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl shadow-violet-500/25 group px-8 py-4 text-lg">
+            Get Started Free
+            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </Link>
+      )}
+
+      <Link href="/agents">
+        <Button
+          variant="outline"
+          className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 px-8 py-4 text-lg"
+        >
+          Browse Experts
+        </Button>
+      </Link>
+    </div>
+
+    <div className="grid grid-cols-3 gap-8 max-w-md mx-auto lg:mx-0">
+      <div className="text-center">
+        <div className="text-2xl font-bold text-white">10K+</div>
+        <div className="text-sm text-gray-400">Active Experts</div>
+      </div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-white">50K+</div>
+        <div className="text-sm text-gray-400">Projects Completed</div>
+      </div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-white">99%</div>
+        <div className="text-sm text-gray-400">Success Rate</div>
+      </div>
+    </div>
+  </div>
+));
+
+HeroContent.displayName = "HeroContent";
 
 export default function Home() {
   const { isSignedIn } = useUser();
+  const lowPerformanceMode = usePerformanceMode();
+
+  // Use scroll optimization
+  useScrollOptimization({
+    throttleMs: 16,
+    enableRAF: true,
+    disablePointerEvents: false, // Keep interactions enabled
+  });
+
+  // Memoize features to prevent re-renders
+  const memoizedFeatures = useMemo(
+    () =>
+      FEATURES_DATA.map((feature, index) => (
+        <FeatureCard
+          key={feature.title}
+          {...feature}
+          className="fade-in-optimized"
+          style={{ animationDelay: `${index * 100}ms` }}
+        />
+      )),
+    []
+  );
 
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      {/* Premium Violet Gradient Background */}
+    <main
+      className="relative min-h-screen overflow-hidden scroll-container"
+      style={{ contain: "layout style" }}
+    >
+      {/* Optimized Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900/20 to-violet-900/30">
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-600/20 via-transparent to-transparent" />
       </div>
 
-      {/* Animated background elements */}
+      {/* Lightweight animated background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-1/2 -left-40 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute bottom-20 right-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl animate-pulse delay-2000" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl animate-pulse" />
+        <div
+          className="absolute top-1/2 -left-40 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: "1s" }}
+        />
       </div>
-
-      <Navbar />
 
       {/* Hero Section */}
       <section className="relative z-10 min-h-screen flex items-center">
         <div className="container mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <Badge
-                  variant="secondary"
-                  className="bg-violet-500/10 text-violet-300 border-violet-500/20 hover:bg-violet-500/20"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  AI-Powered Platform
-                </Badge>
-
-                <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-                  <span className="bg-gradient-to-r from-white via-violet-200 to-purple-300 bg-clip-text text-transparent">
-                    Architecture For AI
-                  </span>
-                  <br />
-                  <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
-                    Influence Engine
-                  </span>
-                  <br />
-                  <span className="text-4xl lg:text-5xl text-gray-300">
-                    For Lasting Impact
-                  </span>
-                </h1>
-
-                <p className="text-xl text-gray-300 max-w-2xl leading-relaxed">
-                  Connect with top automation experts, discover cutting-edge AI
-                  solutions, and build the future of intelligent automation.
-                  Join the premier platform where innovation meets expertise.
-                </p>
-              </div>
-
-              {/* Feature Highlights */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-3 text-gray-300">
-                  <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center">
-                    <Users className="w-4 h-4 text-violet-400" />
-                  </div>
-                  <span>Expert Network</span>
-                </div>
-                <div className="flex items-center space-x-3 text-gray-300">
-                  <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-purple-400" />
-                  </div>
-                  <span>AI-Powered Matching</span>
-                </div>
-                <div className="flex items-center space-x-3 text-gray-300">
-                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                    <Target className="w-4 h-4 text-indigo-400" />
-                  </div>
-                  <span>Smart Recommendations</span>
-                </div>
-                <div className="flex items-center space-x-3 text-gray-300">
-                  <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 text-violet-400" />
-                  </div>
-                  <span>Verified Professionals</span>
-                </div>
-              </div>
-
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                {isSignedIn ? (
-                  <Link href="/feed">
-                    <Button className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl shadow-violet-500/25 group px-8 py-4 text-lg">
-                      Explore Platform
-                      <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link href="/sign-up">
-                    <Button className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl shadow-violet-500/25 group px-8 py-4 text-lg">
-                      Join Waitlist
-                      <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
-                )}
-
-                <Button
-                  variant="outline"
-                  className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 hover:border-violet-400/50 backdrop-blur-sm px-8 py-4 text-lg"
-                >
-                  Learn More
-                </Button>
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center space-x-8 pt-8 border-t border-gray-800">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">500+</div>
-                  <div className="text-sm text-gray-400">Expert Agents</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">1000+</div>
-                  <div className="text-sm text-gray-400">
-                    Projects Completed
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">98%</div>
-                  <div className="text-sm text-gray-400">Success Rate</div>
-                </div>
-              </div>
+            <div className="order-1 lg:order-1">
+              <HeroContent isSignedIn={isSignedIn ?? false} />
             </div>
 
-            {/* Right Side - Robot Animation */}
-            <div className="relative lg:h-screen flex items-center justify-center">
-              <div className="w-full h-[600px] lg:h-[700px] relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-3xl blur-3xl" />
+            {/* Right Side - Optimized Robot Animation */}
+            <div className="order-2 lg:order-2 relative lg:h-screen flex items-center justify-center">
+              <div className="w-full h-[400px] md:h-[600px] lg:h-[700px] relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/5 to-purple-500/5 rounded-3xl blur-3xl" />
                 <SplineScene
                   scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
                   className="w-full h-full relative z-10"
+                  lowPerformanceMode={lowPerformanceMode}
+                  priority={true}
                 />
               </div>
 
               {/* Floating Elements */}
-              <div className="absolute top-20 right-10 bg-violet-500/10 backdrop-blur-sm border border-violet-500/20 rounded-2xl p-4">
+              <div className="absolute top-10 md:top-20 right-4 md:right-10 bg-violet-500/10 backdrop-blur-sm border border-violet-500/20 rounded-2xl p-3 md:p-4">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-sm text-gray-300">AI Active</span>
+                  <span className="text-xs md:text-sm text-gray-300">
+                    AI Active
+                  </span>
                 </div>
               </div>
 
-              <div className="absolute bottom-32 left-10 bg-purple-500/10 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-4">
-                <div className="text-sm text-gray-300">
+              <div className="absolute bottom-20 md:bottom-32 left-4 md:left-10 bg-purple-500/10 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-3 md:p-4">
+                <div className="text-xs md:text-sm text-gray-300">
                   <div className="font-semibold">Smart Matching</div>
                   <div className="text-xs text-gray-400">98% accuracy</div>
                 </div>
@@ -181,7 +323,7 @@ export default function Home() {
       </div>
 
       {/* Features Section */}
-      <section className="relative z-10 py-24 bg-black/20 backdrop-blur-sm">
+      <section className="relative z-10 py-16 md:py-24 bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge
@@ -191,7 +333,7 @@ export default function Home() {
               <Sparkles className="w-4 h-4 mr-2" />
               Platform Features
             </Badge>
-            <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
               <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                 Everything You Need to
               </span>
@@ -200,104 +342,20 @@ export default function Home() {
                 Succeed in AI Automation
               </span>
             </h2>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
               Our comprehensive platform connects you with the right experts,
               tools, and opportunities to accelerate your automation journey.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="group p-8 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-500/20 hover:border-violet-400/40 transition-all duration-300 hover:scale-105">
-              <div className="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Users className="w-6 h-6 text-violet-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-4">
-                Expert Network
-              </h3>
-              <p className="text-gray-300">
-                Connect with verified automation specialists, AI engineers, and
-                industry experts who can bring your vision to life.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="group p-8 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300 hover:scale-105">
-              <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Zap className="w-6 h-6 text-purple-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-4">
-                AI-Powered Matching
-              </h3>
-              <p className="text-gray-300">
-                Our intelligent algorithm analyzes your requirements and matches
-                you with the perfect experts and solutions for your project.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="group p-8 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border border-indigo-500/20 hover:border-indigo-400/40 transition-all duration-300 hover:scale-105">
-              <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Target className="w-6 h-6 text-indigo-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-4">
-                Smart Recommendations
-              </h3>
-              <p className="text-gray-300">
-                Get personalized recommendations for tools, services, and
-                experts based on your industry, goals, and previous successful
-                projects.
-              </p>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="group p-8 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-500/20 hover:border-violet-400/40 transition-all duration-300 hover:scale-105">
-              <div className="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <CheckCircle className="w-6 h-6 text-violet-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-4">
-                Verified Professionals
-              </h3>
-              <p className="text-gray-300">
-                All experts are thoroughly vetted with verified credentials,
-                portfolios, and client reviews to ensure quality and
-                reliability.
-              </p>
-            </div>
-
-            {/* Feature 5 */}
-            <div className="group p-8 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300 hover:scale-105">
-              <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Sparkles className="w-6 h-6 text-purple-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-4">
-                Innovation Hub
-              </h3>
-              <p className="text-gray-300">
-                Stay ahead with access to cutting-edge AI tools, emerging
-                technologies, and industry insights from thought leaders.
-              </p>
-            </div>
-
-            {/* Feature 6 */}
-            <div className="group p-8 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border border-indigo-500/20 hover:border-indigo-400/40 transition-all duration-300 hover:scale-105">
-              <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <ArrowRight className="w-6 h-6 text-indigo-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-4">
-                Seamless Integration
-              </h3>
-              <p className="text-gray-300">
-                Integrate seamlessly with your existing workflows and tools
-                through our comprehensive API and plugin ecosystem.
-              </p>
-            </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {memoizedFeatures}
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section className="relative z-10 py-24">
+      <section className="relative z-10 py-16 md:py-24">
         <div className="container mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge
@@ -307,7 +365,7 @@ export default function Home() {
               <Target className="w-4 h-4 mr-2" />
               How It Works
             </Badge>
-            <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
               <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                 Get Started in
               </span>
@@ -318,67 +376,14 @@ export default function Home() {
             </h2>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Step 1 */}
-            <div className="text-center group">
-              <div className="relative mb-8">
-                <div className="w-20 h-20 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                  <span className="text-2xl font-bold text-white">1</span>
-                </div>
-                <div className="absolute top-10 left-1/2 w-full h-0.5 bg-gradient-to-r from-violet-500/50 to-transparent hidden lg:block" />
-              </div>
-              <h3 className="text-2xl font-semibold text-white mb-4">
-                Define Your Needs
-              </h3>
-              <p className="text-gray-300 text-lg">
-                Tell us about your automation goals, industry requirements, and
-                project scope. Our AI analyzes your needs to find the perfect
-                matches.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="text-center group">
-              <div className="relative mb-8">
-                <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                  <span className="text-2xl font-bold text-white">2</span>
-                </div>
-                <div className="absolute top-10 left-1/2 w-full h-0.5 bg-gradient-to-r from-purple-500/50 to-transparent hidden lg:block" />
-              </div>
-              <h3 className="text-2xl font-semibold text-white mb-4">
-                Connect & Collaborate
-              </h3>
-              <p className="text-gray-300 text-lg">
-                Browse curated recommendations, review expert profiles, and
-                connect with verified professionals who match your specific
-                requirements.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="text-center group">
-              <div className="relative mb-8">
-                <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                  <span className="text-2xl font-bold text-white">3</span>
-                </div>
-              </div>
-              <h3 className="text-2xl font-semibold text-white mb-4">
-                Launch & Scale
-              </h3>
-              <p className="text-gray-300 text-lg">
-                Work together to build, deploy, and scale your automation
-                solutions. Track progress and measure success with built-in
-                analytics.
-              </p>
-            </div>
-          </div>
+          <StepsSection />
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="relative z-10 py-24 bg-gradient-to-r from-violet-500/10 to-purple-500/10 backdrop-blur-sm">
+      <section className="relative z-10 py-16 md:py-24 bg-gradient-to-r from-violet-500/10 to-purple-500/10 backdrop-blur-sm">
         <div className="container mx-auto px-6 lg:px-8 text-center">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
               Ready to Transform Your
             </span>
@@ -387,7 +392,7 @@ export default function Home() {
               Automation Journey?
             </span>
           </h2>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
             Join thousands of professionals who are already building the future
             with AI-powered automation.
           </p>

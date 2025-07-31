@@ -169,7 +169,7 @@ export default function FeedPage() {
   const FeedLayoutWithSidebar = ({ children, ...props }: any) => {
     return (
       <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-2 md:px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Main Feed Content */}
             <div className="lg:col-span-3">
