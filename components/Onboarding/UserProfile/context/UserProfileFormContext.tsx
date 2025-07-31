@@ -27,17 +27,17 @@ const UserProfileSchema = z.object({
   }),
   coreIdentity: z.object({
     fullName: z.string().min(1),
-    bio: z.string().optional(),
-    tagline: z.string().optional(),
+    bio: z.string().min(1, "Bio is required"),
+    tagline: z.string().min(1, "Tagline is required"),
   }),
   hasCompany: z.boolean(),
   company: z
     .object({
       name: z.string().min(1),
-      bio: z.string().optional(),
+      bio: z.string().min(1, "Company bio is required"),
       website: z.string().url().optional(),
-      tagline: z.string().optional(),
-      teamSize: z.string().optional(),
+      tagline: z.string().min(1, "Company tagline is required"),
+      teamSize: z.string().min(1, "Team size is required"),
       logo: z.any().optional(),
       banner: z.any().optional(),
     })
@@ -51,6 +51,7 @@ interface UserProfileFormContextType {
   setCurrentStep: (step: number) => void;
   isLastStep: boolean;
   canProceed: boolean;
+  isSubmitting: boolean;
   handleNext: () => void;
   handlePrev: () => void;
   handleSkip: () => void;
@@ -72,6 +73,7 @@ export function UserProfileFormProvider({
   children: React.ReactNode;
 }) {
   const [currentStep, setCurrentStep] = React.useState(1);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [storedData, setStoredData] = useLocalStorage<Partial<UserProfile>>(
     FORM_STORAGE_KEY,
     {}
@@ -141,43 +143,127 @@ export function UserProfileFormProvider({
     }
   };
 
+  // Watch all form values for real-time validation
+  const watchedValues = watch();
+
   // Determine if user can proceed based on current step validation
   const canProceed = React.useMemo(() => {
-    const values = getValues();
+    const values = watchedValues;
 
     switch (currentStep) {
-      case 1: // Personal Details
-        const { email, username, website } = values.personalDetails;
+      case 1: // Personal Details (Contact Details)
+        const { email, username, website, profilePicture, bannerImage } =
+          values.personalDetails;
         if (website && !isValidUrl(website)) return false;
+
+        // Require email, username, profile picture, and banner image
         return Boolean(
           email?.trim() &&
             username?.trim() &&
+            profilePicture && // Must have profile picture
+            bannerImage && // Must have banner image
             !errors.personalDetails?.email &&
             !errors.personalDetails?.username
         );
 
       case 2: // Core Identity
-        const { fullName } = values.coreIdentity;
-        const { bio, tagline } = values.coreIdentity;
-        return Boolean(fullName?.trim() && !errors.coreIdentity?.fullName);
+        const { fullName, bio, tagline } = values.coreIdentity;
+
+        // Require all core identity fields to be filled
+        return Boolean(
+          fullName?.trim() &&
+            bio?.trim() &&
+            tagline?.trim() &&
+            !errors.coreIdentity?.fullName &&
+            !errors.coreIdentity?.bio &&
+            !errors.coreIdentity?.tagline
+        );
 
       case 3: // Company Details
         if (!values.hasCompany) return true;
         if (!values.company) return false;
-        const { website: companyWebsite } = values.company;
+
+        const {
+          name,
+          bio: companyBio,
+          tagline: companyTagline,
+          teamSize,
+          website: companyWebsite,
+        } = values.company;
         if (companyWebsite && !isValidUrl(companyWebsite)) return false;
-        return Boolean(values.company.name?.trim() && !errors.company?.name);
+
+        // When hasCompany is true, require all fields except website
+        return Boolean(
+          name?.trim() &&
+            companyBio?.trim() &&
+            companyTagline?.trim() &&
+            teamSize?.trim() &&
+            !errors.company?.name &&
+            !errors.company?.bio &&
+            !errors.company?.tagline &&
+            !errors.company?.teamSize
+        );
 
       default:
         return true;
     }
-  }, [currentStep, errors, getValues]);
+  }, [currentStep, errors, watchedValues]);
 
   const isLastStep = currentStep === TOTAL_STEPS;
 
   const handleNext = () => {
     if (canProceed && currentStep < TOTAL_STEPS) {
       setCurrentStep((prev) => prev + 1);
+    } else if (!canProceed) {
+      // Provide specific feedback based on current step
+      const values = getValues();
+
+      switch (currentStep) {
+        case 1: // Contact Details
+          const { profilePicture, bannerImage, email, username } =
+            values.personalDetails;
+          if (!email?.trim() || !username?.trim()) {
+            toast.error(
+              "Please fill in all required fields (Email and Username)"
+            );
+          } else if (!profilePicture) {
+            toast.error("Please upload a profile picture to continue");
+          } else if (!bannerImage) {
+            toast.error("Please upload a banner image to continue");
+          }
+          break;
+
+        case 2: // Core Identity
+          const { fullName, bio, tagline } = values.coreIdentity;
+          if (!fullName?.trim()) {
+            toast.error("Please enter your full name");
+          } else if (!bio?.trim()) {
+            toast.error("Please enter your bio");
+          } else if (!tagline?.trim()) {
+            toast.error("Please enter your tagline");
+          }
+          break;
+
+        case 3: // Company Details
+          if (values.hasCompany && values.company) {
+            const {
+              name,
+              bio: companyBio,
+              tagline: companyTagline,
+              teamSize,
+            } = values.company;
+            if (!name?.trim()) {
+              toast.error("Please enter your company name");
+            } else if (!companyBio?.trim()) {
+              toast.error("Please enter your company bio");
+            } else if (!companyTagline?.trim()) {
+              toast.error("Please enter your company tagline");
+            } else if (!teamSize?.trim()) {
+              toast.error("Please select your team size");
+            }
+          }
+          break;
+      }
     }
   };
 
@@ -199,6 +285,40 @@ export function UserProfileFormProvider({
 
   const handleSubmit = async (data: UserProfile) => {
     try {
+      setIsSubmitting(true);
+
+      // Pre-submission validation for company details
+      if (data.hasCompany) {
+        if (!data.company) {
+          toast.error("Please complete your company details");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const { name, bio, tagline, teamSize } = data.company;
+
+        if (!name?.trim()) {
+          toast.error("Please enter your company name");
+          setIsSubmitting(false);
+          return;
+        }
+        if (!bio?.trim()) {
+          toast.error("Please enter your company bio");
+          setIsSubmitting(false);
+          return;
+        }
+        if (!tagline?.trim()) {
+          toast.error("Please enter your company tagline");
+          setIsSubmitting(false);
+          return;
+        }
+        if (!teamSize?.trim()) {
+          toast.error("Please select your team size");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const formData = new FormData();
 
       // Personal Details
@@ -261,6 +381,8 @@ export function UserProfileFormProvider({
       toast.error(
         "There was an error submitting your profile. Please try again."
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -269,6 +391,7 @@ export function UserProfileFormProvider({
     setCurrentStep,
     isLastStep,
     canProceed,
+    isSubmitting,
     handleNext,
     handlePrev,
     handleSkip,

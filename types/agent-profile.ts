@@ -48,10 +48,10 @@ export const AgentProfileSchema = z.object({
   // Automation Expertise Section
   skills: z.array(z.string()).min(1, "Select at least one skill"),
   automationTools: z.array(z.string()).min(1, "Select at least one tool"),
-  expertiseLevel: z.enum(["beginner", "intermediate", "expert"]),
+  expertiseLevel: z.enum(["beginner", "intermediate", "expert"]).optional(),
 
   // Projects Section
-  projects: z.array(ProjectSchema),
+  projects: z.array(ProjectSchema).optional(),
 
   // Business Details Section
   pricingModel: z.string().min(1, "Pricing model is required"),

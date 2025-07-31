@@ -105,6 +105,16 @@ export function ProjectScopeDetails() {
       return;
     }
 
+    if (!teamSizeRequired) {
+      toast.error("Please select team size required");
+      return;
+    }
+
+    if (!experienceLevel) {
+      toast.error("Please select experience level");
+      return;
+    }
+
     if (!priority) {
       toast.error("Please select a priority");
       return;
@@ -146,7 +156,6 @@ export function ProjectScopeDetails() {
       description="Define the scale and requirements of your automation project"
       onNext={validateAndProceed}
       onPrev={handlePrev}
-      onSkip={handleSkip}
       rightContent={rightContent}
     >
       <motion.div

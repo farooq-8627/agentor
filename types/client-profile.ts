@@ -82,17 +82,17 @@ export const ClientProfileSchema = z.object({
   currentTools: z.array(z.string()).min(1, "Select at least one tool"),
 
   // Project Details Section
-  projectTitle: z.string().min(1, "Project title is required"),
-  businessDomain: z.string().min(1, "Business domain is required"),
-  projectDescription: z.string().min(10, "Project description is required"),
-  painPoints: z.string().min(10, "Pain points are required"),
-  budgetRange: z.string().min(1, "Budget range is required"),
-  timeline: z.string().min(1, "Timeline is required"),
-  complexity: z.string().min(1, "Complexity is required"),
-  engagementType: z.string().min(1, "Engagement type is required"),
-  teamSizeRequired: z.string().min(1, "Team size required is required"),
-  experienceLevel: z.string().min(1, "Experience level is required"),
-  priority: z.string().min(1, "Priority is required"),
+  projectTitle: z.string().optional(),
+  businessDomain: z.string().optional(),
+  projectDescription: z.string().optional(),
+  painPoints: z.string().optional(),
+  budgetRange: z.string().optional(),
+  timeline: z.string().optional(),
+  complexity: z.string().optional(),
+  engagementType: z.string().optional(),
+  teamSizeRequired: z.string().optional(),
+  experienceLevel: z.string().optional(),
+  priority: z.string().optional(),
 });
 
 export type ClientProfile = z.infer<typeof ClientProfileSchema>;

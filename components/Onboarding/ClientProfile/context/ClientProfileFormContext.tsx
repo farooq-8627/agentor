@@ -20,6 +20,7 @@ interface ClientProfileFormContextType {
   handleNext: () => void;
   handlePrev: () => void;
   handleSkip: () => void;
+  handleProjectSkip: () => void; // New method for skipping project steps
   handleSubmit: (data: ClientProfile) => Promise<void>;
   goToFirstSection: () => void;
   totalSteps: number;
@@ -58,6 +59,7 @@ export function ClientProfileFormProvider({
     watch,
     handleSubmit: handleFormSubmit,
     getValues,
+    setValue,
   } = methods;
 
   // Watch form changes and persist to local storage
@@ -85,6 +87,17 @@ export function ClientProfileFormProvider({
 
   const isLastStep = currentStep === TOTAL_STEPS;
 
+  // Helper function to check if user has filled project data
+  const hasProjectData = () => {
+    const values = getValues();
+    return Boolean(
+      values.projectTitle?.trim() ||
+        values.businessDomain?.trim() ||
+        values.projectDescription?.trim() ||
+        values.painPoints?.trim()
+    );
+  };
+
   const handleNext = () => {
     console.log("handleNext called. Current step:", currentStep);
     if (currentStep < TOTAL_STEPS) {
@@ -95,13 +108,49 @@ export function ClientProfileFormProvider({
 
   const handlePrev = () => {
     if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
+      // Special logic for going back from Conclusion (step 4)
+      if (currentStep === 4) {
+        if (hasProjectData()) {
+          // User has project data, go back to ProjectScope (step 3)
+          setCurrentStep(3);
+        } else {
+          // User skipped project, go back to ProjectDetails (step 2)
+          setCurrentStep(2);
+        }
+      } else if (currentStep === 3) {
+        // From ProjectScope, always go back to ProjectDetails (step 2)
+        setCurrentStep(2);
+      } else {
+        // Normal previous navigation for other steps
+        setCurrentStep((prev) => prev - 1);
+      }
     }
   };
 
   const handleSkip = () => {
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep((prev) => prev + 1);
+    }
+  };
+
+  const handleProjectSkip = () => {
+    // Clear all project-related fields
+    setValue("projectTitle", "", { shouldValidate: false });
+    setValue("businessDomain", "", { shouldValidate: false });
+    setValue("projectDescription", "", { shouldValidate: false });
+    setValue("painPoints", "", { shouldValidate: false });
+    setValue("budgetRange", "", { shouldValidate: false });
+    setValue("timeline", "", { shouldValidate: false });
+    setValue("complexity", "", { shouldValidate: false });
+    setValue("engagementType", "", { shouldValidate: false });
+    setValue("teamSizeRequired", "", { shouldValidate: false });
+    setValue("experienceLevel", "", { shouldValidate: false });
+    setValue("priority", "", { shouldValidate: false });
+
+    // Skip 2 steps: ProjectDetails (step 2) and ProjectScopeDetails (step 3)
+    // Go directly to ConclusionSection (step 4)
+    if (currentStep === 2) {
+      setCurrentStep(4); // Skip from step 2 to step 4
     }
   };
 
@@ -186,6 +235,7 @@ export function ClientProfileFormProvider({
     handleNext,
     handlePrev,
     handleSkip,
+    handleProjectSkip,
     handleSubmit,
     goToFirstSection,
     totalSteps: TOTAL_STEPS,

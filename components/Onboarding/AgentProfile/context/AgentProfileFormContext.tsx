@@ -14,9 +14,11 @@ interface AgentProfileFormContextType {
   setCurrentStep: (step: number) => void;
   isLastStep: boolean;
   canProceed: boolean;
+  isSubmitting: boolean;
   handleNext: () => void;
   handlePrev: () => void;
   handleSkip: () => void;
+  handleProjectSkip: () => void; // New method for skipping project steps
   handleSubmit: (data: AgentProfile) => Promise<void>;
   goToFirstSection: () => void;
   totalSteps: number;
@@ -34,6 +36,7 @@ export function AgentProfileFormProvider({
   children: React.ReactNode;
 }) {
   const [currentStep, setCurrentStep] = React.useState(1);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [storedData, setStoredData] = useLocalStorage<Partial<AgentProfile>>(
     FORM_STORAGE_KEY,
     {}
@@ -55,6 +58,7 @@ export function AgentProfileFormProvider({
     watch,
     handleSubmit: handleFormSubmit,
     getValues,
+    setValue,
   } = methods;
 
   // Watch form changes and persist to local storage
@@ -83,94 +87,186 @@ export function AgentProfileFormProvider({
     }
   };
 
+  // Watch all form values for real-time validation
+  const watchedValues = watch();
+
+  // Helper function to check if user has filled project data
+  const hasProjectData = () => {
+    const values = watchedValues;
+    return Boolean(values.projects && values.projects.length > 0);
+  };
+
   // Determine if user can proceed based on current step validation
   const canProceed = React.useMemo(() => {
-    const currentStepFields =
-      {
-        1: ["skills", "expertiseLevel", "automationTools"],
-        2: ["projects"], // Simplified - only require fullName, hasCompany is optional
-        3: [
-          "pricingModel",
-          "availability",
-          "teamSize",
-          "workType",
-          "projectSizePreference",
-        ],
-      }[currentStep] || [];
+    const values = watchedValues;
 
-    const values = getValues();
-
-    if (currentStep === 1) {
-      const skillsValue = values.skills?.length > 0;
-      const expertiseLevelValue = values.expertiseLevel;
-      const automationToolsValue = values.automationTools?.length > 0;
-
-      return Boolean(
-        skillsValue && expertiseLevelValue && automationToolsValue
-      );
-    }
-
-    // Special validation for step 2 (Projects)
-    if (currentStep === 2) {
-      const projectsValue = values.projects?.length > 0;
-
-      // Basic validation - just require projects
-      if (!projectsValue) {
-        return false;
-      }
-
-      // If projects is true, validate projects fields including website
-      if (projectsValue && values.projects) {
-        const projectsWebsite = values.projects.map((project) =>
-          project.projectLink?.trim()
-        );
+    switch (currentStep) {
+      case 1: // AutomationExpertiseSection
+        const skills = values.skills || [];
+        const automationTools = values.automationTools || [];
 
         return Boolean(
-          projectsValue &&
-            !errors.projects &&
-            projectsWebsite?.every((website) => isValidUrl(website || ""))
+          skills.length > 0 &&
+            automationTools.length > 0 &&
+            !errors.skills &&
+            !errors.automationTools
         );
-      }
 
-      // If no company, just validate fullName
-      return Boolean(projectsValue && !errors.projects);
-    }
+      case 2: // ProjectsSection - Validate if proceeding, allow skip
+        const projects = values.projects || [];
 
-    // Special validation for projects section
-    if (currentStep === 4) {
-      const projects = values.projects || [];
-
-      // Validate project links if they exist
-      for (const project of projects) {
-        if (project.projectLink && !isValidUrl(project.projectLink)) {
+        // If no projects, user must skip (can't proceed)
+        if (projects.length === 0) {
           return false;
         }
-      }
 
-      return true; // Projects are optional but links must be valid if provided
+        // If has projects, validate each project has required fields
+        for (const project of projects) {
+          if (!project.title?.trim()) return false;
+          if (!project.description?.trim()) return false;
+          if (!project.technologies || project.technologies.length === 0)
+            return false;
+          // Require at least one image (either File objects or URLs)
+          const hasImages =
+            (project.images && project.images.length > 0) ||
+            (project.imageUrls && project.imageUrls.length > 0);
+          if (!hasImages) return false;
+        }
+
+        return true;
+
+      case 3: // BusinessDetailsSection - All fields required except website
+        const {
+          pricingModel,
+          availability,
+          teamSize,
+          workType,
+          projectSizePreference,
+        } = values;
+
+        return Boolean(
+          pricingModel?.trim() &&
+            availability?.trim() &&
+            teamSize?.trim() &&
+            workType?.trim() &&
+            projectSizePreference &&
+            projectSizePreference.length > 0 &&
+            !errors.pricingModel &&
+            !errors.availability &&
+            !errors.teamSize &&
+            !errors.workType &&
+            !errors.projectSizePreference
+        );
+
+      case 4: // ConclusionSection
+        return true;
+
+      default:
+        return true;
     }
-
-    // Default validation for other steps
-    return currentStepFields.every((field) => {
-      const value = values[field as keyof AgentProfile];
-      const hasError = errors[field as keyof AgentProfile];
-      return (
-        !hasError && (Array.isArray(value) ? value.length > 0 : Boolean(value))
-      );
-    });
-  }, [currentStep, errors, getValues]);
+  }, [currentStep, errors, watchedValues]);
 
   const isLastStep = currentStep === TOTAL_STEPS;
 
   const handleNext = () => {
     if (canProceed && currentStep < TOTAL_STEPS) {
       setCurrentStep((prev) => prev + 1);
+    } else if (!canProceed) {
+      // Provide specific feedback based on current step
+      const values = watchedValues;
+
+      switch (currentStep) {
+        case 1: // AutomationExpertiseSection
+          const skills = values.skills || [];
+          const automationTools = values.automationTools || [];
+
+          if (skills.length === 0) {
+            toast.error(
+              "Please select at least one automation service you provide"
+            );
+          } else if (automationTools.length === 0) {
+            toast.error(
+              "Please select at least one tool you have expertise in"
+            );
+          }
+          break;
+
+        case 2: // ProjectsSection
+          const projects = values.projects || [];
+          if (projects.length === 0) {
+            toast.error("Please add at least one project to your profile.");
+          } else {
+            for (const project of projects) {
+              if (!project.title?.trim()) {
+                toast.error("Please add a title for your project.");
+                break;
+              }
+              if (!project.description?.trim()) {
+                toast.error("Please add a description for your project.");
+                break;
+              }
+              if (!project.technologies || project.technologies.length === 0) {
+                toast.error(
+                  "Please add at least one technology for your project."
+                );
+                break;
+              }
+              if (
+                !(
+                  (project.images && project.images.length > 0) ||
+                  (project.imageUrls && project.imageUrls.length > 0)
+                )
+              ) {
+                toast.error("Please add at least one image for your project.");
+                break;
+              }
+            }
+          }
+          break;
+
+        case 3: // BusinessDetailsSection
+          const {
+            pricingModel,
+            availability,
+            teamSize,
+            workType,
+            projectSizePreference,
+          } = values;
+
+          if (!pricingModel?.trim()) {
+            toast.error("Please select your pricing model");
+          } else if (!availability?.trim()) {
+            toast.error("Please select your availability");
+          } else if (!teamSize?.trim()) {
+            toast.error("Please select your team size");
+          } else if (!workType?.trim()) {
+            toast.error("Please select your work type");
+          } else if (
+            !projectSizePreference ||
+            projectSizePreference.length === 0
+          ) {
+            toast.error("Please select at least one project size preference");
+          }
+          break;
+      }
     }
   };
 
   const handlePrev = () => {
     if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
+      // Special logic for going back from Conclusion (step 4)
+      if (currentStep === 4) {
+        if (hasProjectData()) {
+          // User has project data, go back to BusinessDetails (step 3)
+          setCurrentStep(3);
+        } else {
+          // User skipped project, go back to ProjectsSection (step 2)
+          setCurrentStep(2);
+        }
+      } else {
+        // Normal previous navigation for other steps
+        setCurrentStep((prev) => prev - 1);
+      }
     }
   };
 
@@ -180,12 +276,24 @@ export function AgentProfileFormProvider({
     }
   };
 
+  const handleProjectSkip = () => {
+    // Clear all project-related fields
+    setValue("projects", [], { shouldValidate: false });
+
+    // Skip to BusinessDetails section (step 3)
+    if (currentStep === 2) {
+      setCurrentStep(3);
+    }
+  };
+
   const goToFirstSection = () => {
     router.push("/onboarding");
   };
 
   const handleSubmit = async (data: AgentProfile) => {
     try {
+      setIsSubmitting(true);
+
       // Convert form data to FormData for server action
       const formData = new FormData();
       console.log("Creating FormData object");
@@ -279,6 +387,8 @@ export function AgentProfileFormProvider({
       toast.error(
         "There was an error submitting your profile. Please try again."
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -287,9 +397,11 @@ export function AgentProfileFormProvider({
     setCurrentStep,
     isLastStep,
     canProceed,
+    isSubmitting,
     handleNext,
     handlePrev,
     handleSkip,
+    handleProjectSkip,
     handleSubmit,
     goToFirstSection,
     totalSteps: TOTAL_STEPS,

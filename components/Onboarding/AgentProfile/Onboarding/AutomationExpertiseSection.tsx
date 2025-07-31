@@ -38,8 +38,6 @@ export function AutomationExpertiseSection() {
   // Handle tools selection
   const handleToolsChange = (tools: string[]) => {
     setValue("automationTools", tools, { shouldValidate: true });
-    // Set a default expertise level if not already set
-    setValue("expertiseLevel", "intermediate", { shouldValidate: true });
   };
 
   const rightContent = (

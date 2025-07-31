@@ -65,7 +65,8 @@ const availabilityOptions = convertToSelectFormat(AVAILABILITY_OPTIONS);
 const workTypeOptions = convertToSelectFormat(WORKING_HOURS_PREFERENCES);
 
 export function BusinessDetailsSection() {
-  const { handleNext, handlePrev, handleSkip } = useAgentProfileForm();
+  const { handleNext, handlePrev, handleSkip, canProceed, isSubmitting } =
+    useAgentProfileForm();
   const { watch, setValue } = useAgentProfileFormFields();
 
   // Get form data
@@ -134,7 +135,7 @@ export function BusinessDetailsSection() {
       description="Set your business structure and project preferences"
       onNext={handleNext}
       onPrev={handlePrev}
-      onSkip={handleSkip}
+      canProceed={canProceed}
       rightContent={rightContent}
     >
       <motion.div

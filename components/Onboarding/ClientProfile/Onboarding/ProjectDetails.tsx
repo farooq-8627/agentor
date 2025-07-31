@@ -57,7 +57,7 @@ const itemVariants: Variants = {
 const businessDomains = convertToSelectFormat(INDUSTRY_DOMAINS);
 
 export function ProjectDetails() {
-  const { handleNext, handlePrev, handleSkip } = useClientProfileForm();
+  const { handleNext, handlePrev, handleProjectSkip } = useClientProfileForm();
   const {
     watch,
     setValue,
@@ -73,28 +73,33 @@ export function ProjectDetails() {
   const projectDescription = formData?.projectDescription || "";
   const painPoints = formData?.painPoints || "";
 
-  // Validate and proceed to next step
+  // Validate and proceed to next step - COMPLETE VALIDATION
   const validateAndProceed = () => {
     const values = watch();
     const errors = [];
 
+    // Check all required project fields
     if (!values.projectTitle?.trim()) {
       errors.push("Please enter a project title");
     }
-
     if (!values.businessDomain?.trim()) {
       errors.push("Please select a business domain");
     }
-
     if (!values.projectDescription?.trim()) {
       errors.push("Please provide a project description");
     }
+    if (!values.painPoints?.trim()) {
+      errors.push("Please describe your pain points");
+    }
 
+    // If user has filled some data but not all, show error
     if (errors.length > 0) {
-      errors.forEach((error) => toast.error(error));
+      // Show the first error
+      toast.error(errors[0]);
       return;
     }
 
+    // All validation passed, proceed to next step
     handleNext();
   };
 
@@ -130,7 +135,7 @@ export function ProjectDetails() {
       description="Tell us about your automation project"
       onNext={validateAndProceed}
       onPrev={handlePrev}
-      onSkip={handleSkip}
+      onSkip={handleProjectSkip}
       rightContent={rightContent}
     >
       <motion.div

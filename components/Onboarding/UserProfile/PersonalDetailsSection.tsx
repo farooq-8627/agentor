@@ -144,6 +144,7 @@ export function PersonalDetailsSection() {
       title="Contact Details"
       description="Let's get your essential information"
       onNext={handleNext}
+      canProceed={canProceed}
       rightContent={rightContent}
     >
       <motion.div

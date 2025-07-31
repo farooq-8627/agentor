@@ -78,14 +78,9 @@ const companyDetailsVariants: Variants = {
 const teamSizes = convertToSelectFormat(TEAM_SIZES);
 
 export function CompanyDetailsSection() {
-  const { handleNext, handlePrev, handleSkip, canProceed, handleSubmit } =
+  const { handlePrev, canProceed, handleSubmit, isSubmitting } =
     useUserProfileForm();
-  const {
-    register,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useUserProfileFormFields();
+  const { watch, setValue } = useUserProfileFormFields();
 
   // Get form data
   const formData = watch();
@@ -154,7 +149,9 @@ export function CompanyDetailsSection() {
       description="Tell us about yourself and your business"
       onPrev={handlePrev}
       onSubmit={() => handleSubmit(formData as UserProfile)}
+      canProceed={canProceed}
       rightContent={rightContent}
+      isSubmitting={isSubmitting}
     >
       <motion.div
         className="space-y-4 max-h-[calc(85vh-12rem)] overflow-y-auto px-0.5 py-1"

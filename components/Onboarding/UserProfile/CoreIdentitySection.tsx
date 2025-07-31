@@ -141,7 +141,7 @@ export function CoreIdentitySection() {
       description="Tell us about yourself and your business"
       onNext={validateAndProceed}
       onPrev={handlePrev}
-      onSkip={handleSkip}
+      canProceed={canProceed}
       rightContent={rightContent}
     >
       <motion.div

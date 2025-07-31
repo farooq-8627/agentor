@@ -14,6 +14,7 @@ import {
   useAgentProfileForm,
   useAgentProfileFormFields,
 } from "../context/AgentProfileFormContext";
+import { toast } from "sonner";
 
 const containerVariants: Variants = {
   hidden: {
@@ -49,7 +50,8 @@ const itemVariants: Variants = {
 };
 
 export function ProjectsSection() {
-  const { handleNext, handlePrev, handleSkip } = useAgentProfileForm();
+  const { handleNext, handlePrev, handleProjectSkip, canProceed } =
+    useAgentProfileForm();
   const { watch, setValue } = useAgentProfileFormFields();
   const formData = watch();
 
@@ -77,6 +79,47 @@ export function ProjectsSection() {
   const [savedProjectImages, setSavedProjectImages] = useState<{
     [key: string]: string[];
   }>({});
+
+  // Custom validation function
+  const validateAndProceed = () => {
+    if (projects.length === 0) {
+      toast.error(
+        "Please add at least one project to proceed, or click 'Skip' to continue without projects"
+      );
+      return;
+    }
+
+    for (let i = 0; i < projects.length; i++) {
+      const project = projects[i];
+      const projectNum = i + 1;
+
+      if (!project.title?.trim()) {
+        toast.error(`Please add a title for project ${projectNum}`);
+        return;
+      }
+      if (!project.description?.trim()) {
+        toast.error(`Please add a description for project ${projectNum}`);
+        return;
+      }
+      if (!project.technologies || project.technologies.length === 0) {
+        toast.error(
+          `Please add at least one technology for project ${projectNum}`
+        );
+        return;
+      }
+
+      const hasImages =
+        (project.images && project.images.length > 0) ||
+        (project.imageUrls && project.imageUrls.length > 0);
+      if (!hasImages) {
+        toast.error(`Please add at least one image for project ${projectNum}`);
+        return;
+      }
+    }
+
+    // All validation passed
+    handleNext();
+  };
 
   const handleImageUpload = (files: FileList | null) => {
     if (!files) return;
@@ -240,9 +283,10 @@ export function ProjectsSection() {
     <FormSectionLayout
       title="Project Portfolio"
       description="Showcase your best automation projects"
-      onNext={handleNext}
+      onNext={validateAndProceed}
       onPrev={handlePrev}
-      onSkip={handleSkip}
+      onSkip={handleProjectSkip}
+      canProceed={canProceed}
       rightContent={rightContent}
     >
       <motion.div

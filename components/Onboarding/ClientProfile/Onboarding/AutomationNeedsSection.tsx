@@ -52,8 +52,15 @@ export function AutomationNeedsSection() {
   // Custom next handler
   const handleCustomNext = () => {
     console.log("Current selected needs:", selectedNeeds);
+    console.log("Current selected tools:", selectedTools);
+
     if (selectedNeeds.length === 0) {
       toast.error("Please select at least one automation need");
+      return;
+    }
+
+    if (selectedTools.length === 0) {
+      toast.error("Please select at least one tool you currently use");
       return;
     }
 
@@ -118,11 +125,15 @@ export function AutomationNeedsSection() {
       initialTools={selectedTools}
       onServicesChange={handleServicesChange}
       onToolsChange={handleToolsChange}
-      canProceed={selectedNeeds.length > 0}
+      canProceed={selectedNeeds.length > 0 && selectedTools.length > 0}
       errors={{
         services:
           selectedNeeds.length === 0
             ? "Please select at least one automation need"
+            : undefined,
+        tools:
+          selectedTools.length === 0
+            ? "Please select at least one tool you currently use"
             : undefined,
       }}
     />
