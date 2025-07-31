@@ -19,26 +19,24 @@ interface ExpertiseCardProps {
 }
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    y: 0,
     transition: {
-      duration: 0.5,
-      ease: [0.215, 0.61, 0.355, 1.0] as Easing,
-      staggerChildren: 0.1,
+      duration: 0.2, // Reduced from 0.5
+      ease: "easeOut", // Simpler easing
+      staggerChildren: 0.05, // Reduced from 0.1
     },
   },
 };
 
 const itemChildVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    y: 0,
     transition: {
-      duration: 0.5,
-      ease: [0.215, 0.61, 0.355, 1.0] as Easing,
+      duration: 0.15, // Reduced from 0.5
+      ease: "easeOut", // Simpler easing
     },
   },
 };
@@ -49,9 +47,10 @@ export function ExpertiseCard({ title, items, className }: ExpertiseCardProps) {
       <motion.div
         className="inline-flex flex-wrap gap-1 sm:gap-2"
         initial="hidden"
-        animate="visible"
+        whileInView="visible" // Changed from animate to whileInView
         variants={itemVariants}
-        viewport={{ once: true }}
+        viewport={{ once: true, margin: "-50px" }} // Better viewport settings
+        style={{ willChange: "opacity" }} // Optimize for opacity changes only
       >
         {items.map((item) => {
           const Icon = item.icon;
@@ -60,19 +59,29 @@ export function ExpertiseCard({ title, items, className }: ExpertiseCardProps) {
               key={item.value}
               variants={itemChildVariants}
               className={cn(
-                "group flex flex-row items-center gap-1 sm:gap-2 px-2 sm:px-2 py-1.5 sm:py-2 rounded-lg transition-all duration-300 text-base",
+                "group flex flex-row items-center gap-1 sm:gap-2 px-2 sm:px-2 py-1.5 sm:py-2 rounded-lg text-base",
                 item.colors.bg,
                 item.colors.border,
                 item.colors.hover
               )}
+              style={{
+                willChange: "opacity",
+                // Remove heavy transition, use CSS instead
+                transition:
+                  "background-color 0.2s ease, border-color 0.2s ease",
+              }}
             >
               <div
                 className={cn(
-                  "p-1 sm:p-2 rounded-md transition-all duration-300 shrink-0",
+                  "p-1 sm:p-2 rounded-md shrink-0",
                   item.colors.bg,
-                  item.colors.border,
-                  "group-hover:scale-110"
+                  item.colors.border
                 )}
+                style={{
+                  // Optimize transform for better performance
+                  willChange: "transform",
+                  transition: "transform 0.15s ease",
+                }}
               >
                 <Icon
                   className={cn("w-3 h-3 sm:w-4 sm:h-4", item.colors.text)}

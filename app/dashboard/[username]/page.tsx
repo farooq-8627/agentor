@@ -173,11 +173,18 @@ export default function DashboardPage({
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ contain: "layout style" }}>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
+          <div
+            className="lg:col-span-3 space-y-6 scroll-container"
+            style={{
+              // Optimize for scroll performance
+              willChange: "scroll-position",
+              contain: "layout style paint",
+            }}
+          >
             {/* Profile Banner */}
             {userProfile && (
               <div className="min-h-[200px]">

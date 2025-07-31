@@ -96,7 +96,9 @@ const containerVariants: Variants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.03,
+      staggerChildren: 0.01, // Reduced from 0.03 for better performance
+      duration: 0.15,
+      ease: "easeOut",
     },
   },
 };

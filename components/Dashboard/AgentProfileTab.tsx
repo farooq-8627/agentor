@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback, useRef } from "react";
 import { AgentProfile } from "@/types/index";
 import { AgentAutomationCard } from "@/components/Dashboard/ProfileCards/AgentProfile/AgentAutomationCard";
 import BusinessCard from "@/components/Dashboard/ProfileCards/AgentProfile/BusinessCard";
@@ -11,6 +11,14 @@ interface AgentProfileTabProps {
   profiles: AgentProfile[];
   isCurrentUser?: boolean;
 }
+
+// Memoized card components to prevent unnecessary re-renders
+const MemoizedAgentAutomationCard = React.memo(AgentAutomationCard);
+const MemoizedBusinessCard = React.memo(BusinessCard);
+const MemoizedAvailabilityCard = React.memo(AvailabilityCard);
+const MemoizedAgentProjectCard = React.memo(AgentProjectCard);
+const MemoizedPricingCard = React.memo(PricingCard);
+const MemoizedRequirementsCard = React.memo(RequirementsCard);
 
 function AgentProfileTabContent({
   profiles,
@@ -68,38 +76,45 @@ function AgentProfileTabContent({
     profileData;
 
   return (
-    <div className="space-y-4">
-      <AgentAutomationCard
+    <div
+      className="space-y-4"
+      style={{
+        // Enable hardware acceleration for better scroll performance
+        willChange: "scroll-position",
+        contain: "layout style paint",
+      }}
+    >
+      <MemoizedAgentAutomationCard
         automationExpertise={profile.automationExpertise}
         isCurrentUser={currentUserFlag}
         profileId={profile._id}
       />
 
-      <BusinessCard
+      <MemoizedBusinessCard
         businessDetails={profile.businessDetails}
         isCurrentUser={currentUserFlag}
         profileId={profile._id}
       />
 
-      <AvailabilityCard
+      <MemoizedAvailabilityCard
         availability={availability}
         isCurrentUser={currentUserFlag}
         profileId={profile._id}
       />
 
-      <AgentProjectCard
+      <MemoizedAgentProjectCard
         projects={projects}
         isCurrentUser={currentUserFlag}
         profileId={profile._id}
       />
 
-      <PricingCard
+      <MemoizedPricingCard
         pricing={pricing}
         isCurrentUser={currentUserFlag}
         profileId={profile._id}
       />
 
-      <RequirementsCard
+      <MemoizedRequirementsCard
         mustHaveRequirements={mustHaveRequirements}
         isCurrentUser={currentUserFlag}
         profileId={profile._id}

@@ -1,10 +1,10 @@
 "use client";
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { motion, HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface GlassCardProps extends Omit<HTMLMotionProps<"div">, "children"> {
-  theme?: "dark" | "light";
+  theme?: "light" | "dark";
   children: React.ReactNode;
   className?: string;
   padding?: string;
@@ -17,57 +17,60 @@ export function GlassCard({
   padding = "p-6",
   ...props
 }: GlassCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Use callbacks to prevent re-renders
+  const handleMouseEnter = useCallback(() => setIsHovered(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovered(false), []);
+
   return (
     <motion.div
-      className={cn("relative z-10", className)}
-      style={{ perspective: 1500 }}
+      className={cn("relative", className)}
+      // Remove perspective as it's heavy during scroll
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       {...props}
     >
-      <motion.div className="relative" whileHover={{ z: 10 }}>
-        <div className="relative group">
-          {/* Card glow effect - reduced intensity */}
+      <div className="relative group">
+        {/* Simplified hover glow - only show on hover */}
+        {isHovered && (
           <motion.div
-            className="absolute -inset-[1px] rounded-2xl opacity-0 group-hover:opacity-70 transition-opacity duration-700"
-            animate={{
-              boxShadow: [
-                "0 0 10px 2px rgba(255,255,255,0.03)",
-                "0 0 15px 5px rgba(255,255,255,0.05)",
-                "0 0 10px 2px rgba(255,255,255,0.03)",
-              ],
-              opacity: [0.2, 0.4, 0.2],
+            className="absolute -inset-[1px] rounded-2xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.3 }}
+            exit={{ opacity: 0 }}
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
+              willChange: "opacity",
             }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-              repeatType: "mirror",
-            }}
+            transition={{ duration: 0.2 }}
           />
+        )}
 
-          {/* Card border glow */}
-          <div className="absolute -inset-[0.5px] rounded-2xl border border-white/[0.1]" />
+        {/* Static border - no animation */}
+        <div className="absolute -inset-[0.5px] rounded-2xl border border-white/[0.1]" />
 
-          {/* Glass card background */}
-          <div
-            className={cn(
-              "relative bg-black/80 backdrop-blur-xl rounded-2xl   border border-white/[0.05] shadow-2xl overflow-hidden",
-              padding
-            )}
-          >
-            {/* Subtle card inner patterns */}
-            <div
-              className="absolute inset-0 opacity-[0.03]"
-              style={{
-                backgroundImage: `linear-gradient(135deg, white 0.5px, transparent 0.5px), linear-gradient(45deg, white 0.5px, transparent 0.5px)`,
-                backgroundSize: "30px 30px",
-              }}
-            />
+        {/* Optimized glass card background */}
+        <div
+          className={cn(
+            "relative bg-black/80 backdrop-blur-xl rounded-2xl border border-white/[0.05] shadow-xl overflow-hidden",
+            padding
+          )}
+          style={{
+            // Use transform3d to enable hardware acceleration
+            transform: "translate3d(0,0,0)",
+            willChange: "transform",
+          }}
+        >
+          {/* Removed heavy pattern overlay - too expensive during scroll */}
 
-            {/* Content */}
-            <div className="relative z-10">{children}</div>
+          {/* Content with hardware acceleration */}
+          <div className="relative z-10" style={{ willChange: "auto" }}>
+            {children}
           </div>
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

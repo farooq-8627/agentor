@@ -78,3 +78,93 @@
     rgba(0, 0, 0, 0) 100%
   );
 }
+
+/* Performance optimizations for scrolling */
+* {
+  /* Enable hardware acceleration for better performance */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize scrolling performance */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  /* Enable hardware acceleration */
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+
+  /* Optimize text rendering */
+  text-rendering: optimizeSpeed;
+
+  /* Better scroll performance */
+  overscroll-behavior: none;
+}
+
+/* Optimize motion components */
+[data-framer-component-type] {
+  will-change: auto;
+}
+
+/* Scroll container optimizations */
+.scroll-container {
+  contain: layout style paint;
+  will-change: scroll-position;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Card hover optimizations */
+.card-hover {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Performance optimized backdrop blur */
+.backdrop-blur-optimized {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  will-change: backdrop-filter;
+}
+
+/* Optimize animations for 60fps */
+@keyframes optimizedFadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.fade-in-optimized {
+  animation: optimizedFadeIn 0.2s ease-out;
+  will-change: opacity;
+}
