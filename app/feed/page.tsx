@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { usePosts } from "@/hooks/usePosts";
 import { PostCard } from "@/components/cards/Feed/PostCard";
 import { InfiniteFeedPageLayout } from "@/components/shared/InfiniteFeedPageLayout";
-import { FeedPageLayout } from "@/components/shared/FeedPageLayout";
+import { RecommendationSidebar } from "@/components/recommendations/RecommendationSidebar";
 import { Post } from "@/types/post";
 
 export default function FeedPage() {
@@ -165,12 +165,46 @@ export default function FeedPage() {
     }
   }, [isAchievementFilter, fetchAchievementPosts]);
 
-  const LayoutComponent = useInfiniteScroll
-    ? InfiniteFeedPageLayout
-    : FeedPageLayout;
+  // Custom layout component with sidebar
+  const FeedLayoutWithSidebar = ({ children, ...props }: any) => {
+    return (
+      <div className="min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Main Feed Content */}
+            <div className="lg:col-span-3">
+              <InfiniteFeedPageLayout {...props}>
+                {children}
+              </InfiniteFeedPageLayout>
+            </div>
+
+            {/* Recommendation Sidebar */}
+            <div className="lg:col-span-1">
+              <div>
+                <RecommendationSidebar
+                  maxItemsPerSection={3}
+                  showHeader={true}
+                  className="mb-6"
+                  loading={loading}
+                />
+
+                {/* You can add more sidebar widgets here */}
+                {/* <div className="mt-6">
+                  <TrendingTopics />
+                </div>
+                <div className="mt-6">
+                  <SuggestedConnections />
+                </div> */}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <LayoutComponent
+    <FeedLayoutWithSidebar
       title="Community Feed"
       subtitle="Discover the latest updates, achievements, and insights from our automation community. Connect with experts and stay informed about industry trends."
       data={currentPosts || []}

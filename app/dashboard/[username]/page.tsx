@@ -15,6 +15,7 @@ import { PostSection } from "@/components/Dashboard/ProfileCards/Feed/PostSectio
 import { FeedPost } from "@/types/Posts";
 import { Post } from "@/types/post";
 import { User } from "@/types/User";
+import { RecommendationSidebar } from "@/components/recommendations/RecommendationSidebar";
 
 // Memoize menu items since they never change
 const menuItems = [
@@ -39,7 +40,8 @@ export default function DashboardPage({
 }: {
   params: Promise<{ username: string }>;
 }) {
-  const unwrappedParams = React.use(params) as { username: string };
+  const unwrappedParams = React.use(params);
+
   const { agentProfiles, clientProfiles, loading, error } =
     useUserProfilesByUsername(unwrappedParams.username);
   const { user: userProfile, isLoading: userLoading } = useUser(
@@ -70,19 +72,31 @@ export default function DashboardPage({
     [currentUser?.username, unwrappedParams.username]
   );
 
-  // Show loading skeleton with fixed dimensions to prevent layout shifts
+  // Remove the first loading state - let components handle their own loading
   if (loading || userLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl space-y-4">
-        <div className="animate-pulse">
-          {/* Banner skeleton */}
-          <div className="h-[200px] bg-white/5 rounded-lg mb-8" />
+      <div className="min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Main Content Loading */}
+            <div className="lg:col-span-3 space-y-4">
+              <div className="animate-pulse">
+                {/* Banner skeleton */}
+                <div className="h-[200px] bg-white/5 rounded-lg mb-8" />
+                {/* About section skeleton */}
+                <div className="h-[100px] bg-white/5 rounded-lg mb-8" />
+                {/* Post section skeleton */}
+                <div className="h-[300px] bg-white/5 rounded-lg" />
+              </div>
+            </div>
 
-          {/* About section skeleton */}
-          <div className="h-[100px] bg-white/5 rounded-lg mb-8" />
-
-          {/* Post section skeleton */}
-          <div className="h-[300px] bg-white/5 rounded-lg" />
+            {/* Sidebar Loading */}
+            <div className="lg:col-span-1">
+              <div className="animate-pulse">
+                <div className="h-[400px] bg-white/5 rounded-lg" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -90,8 +104,12 @@ export default function DashboardPage({
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="text-center text-red-500">Error loading profiles</div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-red-600">Error loading profile</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -155,67 +173,95 @@ export default function DashboardPage({
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl space-y-4">
-      {/* Profile Banner */}
-      {userProfile && (
-        <div className="min-h-[200px]">
-          <ProfileBannerCard
-            bannerImage={
-              userProfile.personalDetails?.bannerImage?.asset?.url || ""
-            }
-            profilePicture={
-              userProfile.personalDetails?.profilePicture?.asset?.url || ""
-            }
-            fullName={userProfile.coreIdentity?.fullName || ""}
-            username={userProfile.personalDetails?.username || ""}
-            website={userProfile.personalDetails?.website || ""}
-            bio={userProfile.coreIdentity?.bio || ""}
-            tagline={userProfile.coreIdentity?.tagline || ""}
-            location={userProfile.profileDetails?.location}
-            socialLinks={userProfile.personalDetails?.socialLinks}
-            isCurrentUser={isCurrentUser}
-          />
-        </div>
-      )}
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Profile Banner */}
+            {userProfile && (
+              <div className="min-h-[200px]">
+                <ProfileBannerCard
+                  bannerImage={
+                    userProfile.personalDetails?.bannerImage?.asset?.url || ""
+                  }
+                  profilePicture={
+                    userProfile.personalDetails?.profilePicture?.asset?.url ||
+                    ""
+                  }
+                  fullName={userProfile.coreIdentity?.fullName || ""}
+                  username={userProfile.personalDetails?.username || ""}
+                  website={userProfile.personalDetails?.website || ""}
+                  bio={userProfile.coreIdentity?.bio || ""}
+                  tagline={userProfile.coreIdentity?.tagline || ""}
+                  location={userProfile.profileDetails?.location}
+                  socialLinks={userProfile.personalDetails?.socialLinks}
+                  isCurrentUser={isCurrentUser}
+                />
+              </div>
+            )}
 
-      {/* About Section */}
-      {userProfile?.coreIdentity?.bio && (
-        <div className="mb-8 min-h-[100px]">
-          <AboutCard
-            bio={userProfile.coreIdentity.bio}
-            isCurrentUser={isCurrentUser}
-          />
-        </div>
-      )}
+            {/* About Section */}
+            {userProfile?.coreIdentity?.bio && (
+              <div className="mb-8 min-h-[100px]">
+                <AboutCard
+                  bio={userProfile.coreIdentity.bio}
+                  isCurrentUser={isCurrentUser}
+                />
+              </div>
+            )}
 
-      {/* Post Section */}
-      {userProfile && (
-        <div className="min-h-[300px]">
-          <PostSection
-            posts={userProfile.posts as unknown as Post[]}
-            username={userProfile.personalDetails?.username || ""}
-            isCurrentUser={isCurrentUser}
-            profileId={userProfile._id}
-            user={userProfile as unknown as User}
-          />
-        </div>
-      )}
+            {/* Post Section */}
+            {userProfile && (
+              <div className="min-h-[300px]">
+                <PostSection
+                  posts={userProfile.posts as unknown as Post[]}
+                  username={userProfile.personalDetails?.username || ""}
+                  isCurrentUser={isCurrentUser}
+                  profileId={userProfile._id}
+                  user={userProfile as unknown as User}
+                />
+              </div>
+            )}
 
-      {/* Profile Tabs */}
-      <div className="w-full mb-8">
-        {/* Only show menu if user has both profiles */}
-        {hasBothProfiles && (
-          <div className="max-w-2xl mx-auto mb-8">
-            <MenuBar
-              items={menuItems}
-              activeItem={activeTab}
-              onItemClick={setActiveTab}
-              className="w-full"
-            />
+            {/* Profile Tabs */}
+            <div className="w-full mb-8">
+              {/* Only show menu if user has both profiles */}
+              {hasBothProfiles && (
+                <div className="max-w-2xl mx-auto mb-8">
+                  <MenuBar
+                    items={menuItems}
+                    activeItem={activeTab}
+                    onItemClick={setActiveTab}
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              <div className="mt-6">{renderProfileTab()}</div>
+            </div>
           </div>
-        )}
 
-        <div className="mt-6">{renderProfileTab()}</div>
+          {/* Recommendation Sidebar */}
+          <div className="lg:col-span-1">
+            <div>
+              {/* Only show recommendations for current user */}
+              {isCurrentUser && (
+                <RecommendationSidebar
+                  maxItemsPerSection={2}
+                  showHeader={true}
+                  className="mb-6"
+                  loading={loading || userLoading}
+                />
+              )}
+
+              {/* You can add more sidebar widgets here */}
+              {/* <div className="mt-6">
+                <OtherSidebarWidget />
+              </div> */}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
