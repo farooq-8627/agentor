@@ -106,6 +106,14 @@ module.exports = {
           "0%, 100%": { transform: "scaleX(1)" },
           "50%": { transform: "scaleX(1.5)" },
         },
+        "fade-in": {
+          from: { opacity: 0 },
+          to: { opacity: 1 },
+        },
+        "zoom-in": {
+          from: { transform: "scale(0.95)", opacity: 0 },
+          to: { transform: "scale(1)", opacity: 1 },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -119,6 +127,9 @@ module.exports = {
         spotlight: "spotlight 2s ease .75s 1 forwards",
         pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "arrow-pulse": "arrowPulse 3s ease-in-out infinite",
+        "fade-in-0": "fade-in 0.2s ease-out",
+        "zoom-in-95": "zoom-in 0.2s ease-out",
+        "animate-in": "fade-in 0.2s ease-out",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)"],

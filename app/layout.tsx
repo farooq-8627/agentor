@@ -5,7 +5,7 @@ import Script from "next/script";
 import localFont from "next/font/local";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Navbar } from "@/components/Root/Navbar";
+import { FloatingNavbar } from "@/components/Root/FloatingNavbar";
 import { Toaster } from "@/components/UI/toaster";
 import { PostProvider } from "@/lib/context/PostContext";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -89,10 +89,12 @@ export default function RootLayout({
             ></div>
           </div>
 
+          {/* Floating Navbar - Fixed to Viewport */}
+          <FloatingNavbar />
+
           {/* Content */}
           <div className="relative z-10">
             <PostProvider>
-              <Navbar />
               {children}
               <Toaster />
             </PostProvider>

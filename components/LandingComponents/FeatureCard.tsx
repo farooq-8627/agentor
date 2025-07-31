@@ -33,30 +33,32 @@ export const FeatureCard = memo(function FeatureCard({
   return (
     <div
       className={cn(
-        "group p-8 rounded-2xl border transition-all duration-300 hover:scale-105 card-hover",
+        "group p-8 rounded-2xl border transition-all duration-700 card-hover",
         `bg-gradient-to-br from-${gradient.from} to-${gradient.to}`,
         `border-${borderColor} hover:border-${hoverBorderColor}`,
         className
       )}
       style={{
-        willChange: "transform, border-color",
+        willChange: "border-color",
         contain: "layout style paint",
         ...style,
       }}
     >
-      <div
-        className={cn(
-          "w-12 h-12 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform",
-          `bg-${iconColor.replace("-400", "-500")}/20`
-        )}
-        style={{ willChange: "transform" }}
-      >
-        <Icon className={cn("w-6 h-6", `text-${iconColor}`)} />
+      <div className="flex flex-row align-center gap-4">
+        <div
+          className={cn(
+            "w-12 h-12 rounded-xl flex items-center justify-center mb-6 transition-transform duration-700",
+            `bg-${iconColor.replace("-400", "-500")}/20`
+          )}
+        >
+          <Icon className={cn("w-6 h-6", `text-${iconColor}`)} />
+        </div>
+
+        <h3 className="text-xl font-semibold text-white mt-2">{title}</h3>
       </div>
-
-      <h3 className="text-xl font-semibold text-white mb-4">{title}</h3>
-
-      <p className="text-gray-300">{description}</p>
+      <div>
+        <p className="text-gray-300">{description}</p>
+      </div>
     </div>
   );
 });

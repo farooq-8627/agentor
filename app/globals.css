@@ -93,9 +93,9 @@ html {
 
 body {
   /* Enable hardware acceleration */
-  transform: translate3d(0, 0, 0);
+  /* transform: translate3d(0, 0, 0); */
   backface-visibility: hidden;
-  perspective: 1000px;
+  /* perspective: 1000px; */
 
   /* Optimize text rendering */
   text-rendering: optimizeSpeed;
@@ -178,6 +178,29 @@ body {
 .feature-grid {
   contain: layout;
   display: grid;
+}
+
+/* Floating navbar optimizations */
+.floating-navbar {
+  will-change: opacity, transform;
+  contain: layout style paint;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+.floating-navbar-item {
+  will-change: transform, background-color;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+.tooltip {
+  will-change: opacity, transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+.feature-grid {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
 }

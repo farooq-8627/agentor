@@ -1,7 +1,6 @@
 "use client";
 
 import React, { memo, useState, useEffect, useMemo } from "react";
-import { Navbar } from "@/components/Root/Navbar";
 import { SplineScene } from "@/components/UI/splite";
 import { FeatureCard } from "@/components/LandingComponents/FeatureCard";
 import { Button } from "@/components/UI/button";
@@ -46,10 +45,10 @@ const FEATURES_DATA = [
     title: "Expert Network",
     description:
       "Connect with verified automation specialists, AI engineers, and industry experts who can bring your vision to life.",
-    gradient: { from: "violet-500/10", to: "purple-500/10" },
-    iconColor: "violet-400",
-    borderColor: "violet-500/20",
-    hoverBorderColor: "violet-400/40",
+    gradient: { from: "purple-500/10", to: "indigo-500/10" },
+    iconColor: "purple-400",
+    borderColor: "purple-500/20",
+    hoverBorderColor: "purple-400/40",
   },
   {
     icon: Zap,
@@ -66,20 +65,20 @@ const FEATURES_DATA = [
     title: "Smart Recommendations",
     description:
       "Get personalized recommendations for tools, services, and experts based on your industry, goals, and previous successful projects.",
-    gradient: { from: "indigo-500/10", to: "violet-500/10" },
-    iconColor: "indigo-400",
-    borderColor: "indigo-500/20",
-    hoverBorderColor: "indigo-400/40",
+    gradient: { from: "purple-500/10", to: "indigo-500/10" },
+    iconColor: "purple-400",
+    borderColor: "purple-500/20",
+    hoverBorderColor: "purple-400/40",
   },
   {
     icon: CheckCircle,
     title: "Verified Professionals",
     description:
       "All experts are thoroughly vetted with verified credentials, portfolios, and client reviews to ensure quality and reliability.",
-    gradient: { from: "violet-500/10", to: "purple-500/10" },
-    iconColor: "violet-400",
-    borderColor: "violet-500/20",
-    hoverBorderColor: "violet-400/40",
+    gradient: { from: "purple-500/10", to: "indigo-500/10" },
+    iconColor: "purple-400",
+    borderColor: "purple-500/20",
+    hoverBorderColor: "purple-400/40",
   },
   {
     icon: Sparkles,
@@ -96,10 +95,10 @@ const FEATURES_DATA = [
     title: "Seamless Integration",
     description:
       "Integrate seamlessly with your existing workflows and tools through our comprehensive API and plugin ecosystem.",
-    gradient: { from: "indigo-500/10", to: "violet-500/10" },
-    iconColor: "indigo-400",
-    borderColor: "indigo-500/20",
-    hoverBorderColor: "indigo-400/40",
+    gradient: { from: "purple-500/10", to: "indigo-500/10" },
+    iconColor: "purple-400",
+    borderColor: "purple-500/20",
+    hoverBorderColor: "purple-400/40",
   },
 ] as const;
 
@@ -242,12 +241,11 @@ export default function Home() {
   // Memoize features to prevent re-renders
   const memoizedFeatures = useMemo(
     () =>
-      FEATURES_DATA.map((feature, index) => (
+      FEATURES_DATA.map((feature) => (
         <FeatureCard
           key={feature.title}
           {...feature}
           className="fade-in-optimized"
-          style={{ animationDelay: `${index * 100}ms` }}
         />
       )),
     []
