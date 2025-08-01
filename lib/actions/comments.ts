@@ -63,10 +63,10 @@ export async function addComment(
     const result = await patch.commit({ autoGenerateArrayKeys: true });
     console.log("Sanity mutation result:", result);
 
-    // Revalidate the feed page to show new comment
-    revalidatePath("/feed");
-    revalidatePath("/dashboard/[username]", "layout");
-    revalidatePath("/dashboard/[username]/posts", "page");
+    // Don't revalidate paths - client handles optimistic updates
+    // revalidatePath("/feed");
+    // revalidatePath("/dashboard/[username]", "layout");
+    // revalidatePath("/dashboard/[username]/posts", "page");
 
     // Return the comment with expanded author data for immediate UI update
     const responseData = {
@@ -146,10 +146,10 @@ export async function editComment(
     const result = await patch.commit();
     console.log("Edit result:", result);
 
-    // Revalidate the feed page to show edited comment
-    revalidatePath("/feed");
-    revalidatePath("/dashboard/[username]", "layout");
-    revalidatePath("/dashboard/[username]/posts", "page");
+    // Don't revalidate paths - client handles optimistic updates
+    // revalidatePath("/feed");
+    // revalidatePath("/dashboard/[username]", "layout");
+    // revalidatePath("/dashboard/[username]/posts", "page");
 
     return {
       success: true,
@@ -205,10 +205,10 @@ export async function deleteComment(
     const result = await patch.commit();
     console.log("Delete result:", result);
 
-    // Revalidate the feed page
-    revalidatePath("/feed");
-    revalidatePath("/dashboard/[username]", "layout");
-    revalidatePath("/dashboard/[username]/posts", "page");
+    // Don't revalidate paths - client handles optimistic updates
+    // revalidatePath("/feed");
+    // revalidatePath("/dashboard/[username]", "layout");
+    // revalidatePath("/dashboard/[username]/posts", "page");
     return {
       success: true,
     };
@@ -245,10 +245,10 @@ export async function updateComment(
 
     console.log("Update comment result:", result);
 
-    // Revalidate the feed page to show updated comment
-    revalidatePath("/feed");
-    revalidatePath("/dashboard/[username]", "layout");
-    revalidatePath("/dashboard/[username]/posts", "page");
+    // Don't revalidate paths - client handles optimistic updates
+    // revalidatePath("/feed");
+    // revalidatePath("/dashboard/[username]", "layout");
+    // revalidatePath("/dashboard/[username]/posts", "page");
     return { success: true };
   } catch (error) {
     console.error("Error updating comment:", {

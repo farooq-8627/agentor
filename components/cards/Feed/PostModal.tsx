@@ -29,12 +29,12 @@ import { formatPostTime } from "@/lib/formatPostTime";
 import type { Media } from "./PostCard";
 import { GlassModal } from "../../UI/GlassModal";
 import { cn } from "@/lib/utils";
-import { usePosts } from "@/hooks/usePosts";
 import { useUser } from "@clerk/nextjs";
 import { Author, Like } from "@/types/post";
 import { client } from "@/sanity/lib/client";
 import { postQueries } from "@/lib/queries/post";
 import { OptimizedVideo } from "@/components/shared/OptimizedVideo";
+import { addComment, deleteComment, editComment } from "@/lib/actions/comments";
 
 interface Comment {
   _key: string;
@@ -75,12 +75,19 @@ interface PostModalProps {
   selectedMediaIndex: number;
 }
 
-export function PostModal({
+export const PostModal = React.memo(function PostModal({
   isOpen,
   onClose,
   post,
   selectedMediaIndex,
 }: PostModalProps) {
+  // console.log("🔄 PostModal render:", {
+  //   isOpen,
+  //   postId: post._id,
+  //   commentsCount: post.comments || 0,
+  //   timestamp: new Date().toISOString(),
+  // });
+
   const [currentMediaIndex, setCurrentMediaIndex] =
     useState(selectedMediaIndex);
   const [commentText, setCommentText] = useState("");
@@ -94,11 +101,64 @@ export function PostModal({
   const [replyText, setReplyText] = useState("");
   const [expandedReplies, setExpandedReplies] = useState<string[]>([]);
   const { user } = useUser();
-  const {
-    handleAddComment: addCommentAPI,
-    handleDeleteComment: deleteCommentAPI,
-    handleEditComment: updateCommentAPI,
-  } = usePosts();
+
+  // Remove usePosts dependency - use direct API calls instead
+  // const {
+  //   handleAddComment: addCommentAPI,
+  //   handleDeleteComment: deleteCommentAPI,
+  //   handleEditComment: updateCommentAPI,
+  // } = usePosts();
+
+  // Direct API functions to avoid global context
+  // const addCommentAPI = async (postId: string, text: string, author: any) => {
+  //   console.log("📝 Direct addComment API call:", {
+  //     postId,
+  //     text: text.substring(0, 50) + "...",
+  //   });
+
+  //   const result = await client.create({
+  //     _type: "comment",
+  //     post: { _type: "reference", _ref: postId },
+  //     text: text,
+  //     author: { _type: "reference", _ref: author._id },
+  //     createdAt: new Date().toISOString(),
+  //   });
+
+  //   console.log("✅ Comment created directly, no global state changes");
+  //   return result;
+  // };
+
+  // const deleteCommentAPI = async (commentKey: string) => {
+  //   console.log("🗑️ Direct deleteComment API call:", { commentKey });
+
+  //   const result = await client.delete(commentKey);
+
+  //   console.log("✅ Comment deleted directly, no global state changes");
+  //   return result;
+  // };
+
+  // const updateCommentAPI = async (
+  //   postId: string,
+  //   commentKey: string,
+  //   text: string
+  // ) => {
+  //   console.log("✏️ Direct updateComment API call:", { postId, commentKey });
+
+  //   const result = await client
+  //     .patch(postId)
+  //     .setIfMissing({ comments: [] })
+  //     .insert("after", "comments[-1]", [
+  //       {
+  //         _key: commentKey,
+  //         _type: "comment",
+  //         text: text,
+  //       },
+  //     ])
+  //     .commit();
+
+  //   console.log("✅ Comment updated directly, no global state changes");
+  //   return result;
+  // };
 
   // Fetch comments when modal is opened
   useEffect(() => {
@@ -108,6 +168,11 @@ export function PostModal({
   }, [isOpen, post._id]); // Only depend on isOpen and post.id
 
   const fetchComments = useCallback(async () => {
+    console.log("🔄 fetchComments called:", {
+      postId: post._id,
+      timestamp: new Date().toISOString(),
+    });
+
     try {
       console.log("=== Fetching comments ===");
       const query = postQueries.getPostComments(post._id);
@@ -122,18 +187,23 @@ export function PostModal({
       setComments(comments);
       console.log("=== Comments fetch complete ===");
     } catch (error) {
-      console.error("=== Comments fetch failed ===");
-      console.error("Error fetching comments:", error);
+      console.error("❌ Error fetching comments:", error);
     }
   }, [post._id]); // Memoize fetchComments
 
   const handleAddComment = async (e: React.FormEvent) => {
+    console.log("💬 Add comment operation started:", {
+      postId: post._id,
+      commentText: commentText.trim(),
+      timestamp: new Date().toISOString(),
+    });
+
     e.preventDefault();
-    if (!user || !commentText.trim() || isSubmitting) return;
+    if (!commentText.trim() || !user?.id) return;
 
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-
+      // Create proper Author object
       const authorData: Author = {
         _id: user.id,
         personalDetails: {
@@ -151,18 +221,19 @@ export function PostModal({
         },
       };
 
-      const result = await addCommentAPI(
-        post._id,
-        commentText.trim(),
-        authorData
-      );
+      console.log("🌐 Making add comment API call...");
+      const result = await addComment(post._id, commentText.trim(), authorData);
 
-      if (result.success && result.data) {
-        await fetchComments(); // Fetch fresh comments
+      if (result.success) {
         setCommentText("");
+        console.log("🔄 Reloading comments after add...");
+        await fetchComments(); // Reload comments
+        console.log("✅ Add comment operation completed");
+      } else {
+        console.error("❌ Error adding comment:", result.error);
       }
     } catch (error) {
-      console.error("Error adding comment:", error);
+      console.error("❌ Error adding comment:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -170,9 +241,11 @@ export function PostModal({
 
   const handleDeleteComment = async (commentKey: string) => {
     try {
-      const result = await deleteCommentAPI(post._id, commentKey);
+      const result = await deleteComment(post._id, commentKey);
       if (result.success) {
         await fetchComments(); // Fetch fresh comments
+      } else {
+        console.error("❌ Error deleting comment:", result.error);
       }
     } catch (error) {
       console.error("Error deleting comment:", error);
@@ -187,20 +260,17 @@ export function PostModal({
     }
   };
 
-  const handleSaveEdit = async (commentKey: string) => {
+  const handleSaveEdit = async (commentKey: string, newText: string) => {
     try {
-      const result = await updateCommentAPI(
-        post._id,
-        commentKey,
-        editText.trim()
-      );
+      const result = await editComment(post._id, commentKey, newText);
       if (result.success) {
-        await fetchComments();
+        await fetchComments(); // Fetch fresh comments
         setEditingCommentKey(null);
-        setEditText("");
+      } else {
+        console.error("❌ Error updating comment:", result.error);
       }
     } catch (error) {
-      console.error("Error saving comment edit:", error);
+      console.error("Error updating comment:", error);
     }
   };
 
@@ -209,40 +279,43 @@ export function PostModal({
     setEditText("");
   };
 
-  const handleAddReply = async (
-    e: React.FormEvent,
-    parentCommentKey: string
-  ) => {
-    e.preventDefault();
-    if (!user || !replyText.trim()) return;
+  const handleAddReply = async (parentCommentKey: string) => {
+    if (!replyText.trim() || !user?.id) return;
 
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      const result = await addCommentAPI(
+      // Create proper Author object for reply
+      const authorData: Author = {
+        _id: user.id,
+        personalDetails: {
+          username: user.username || user.id,
+          profilePicture: user.imageUrl
+            ? {
+                asset: {
+                  url: user.imageUrl,
+                },
+              }
+            : undefined,
+        },
+        coreIdentity: {
+          fullName: user.fullName || user.username || "Anonymous User",
+        },
+      };
+
+      // Add reply with parentCommentKey to make it a proper reply
+      const result = await addComment(
         post._id,
         replyText.trim(),
-        {
-          _id: user.id,
-          personalDetails: {
-            username: user.username || user.id,
-            profilePicture: user.imageUrl
-              ? {
-                  asset: {
-                    url: user.imageUrl,
-                  },
-                }
-              : undefined,
-          },
-          coreIdentity: {
-            fullName: user.fullName || user.username || "Anonymous User",
-          },
-        },
-        parentCommentKey
+        authorData,
+        parentCommentKey // This makes it a reply!
       );
+
       if (result.success) {
         setReplyText("");
         setReplyingToKey(null);
         await fetchComments();
+      } else {
+        console.error("❌ Error adding reply:", result.error);
       }
     } catch (error) {
       console.error("Error adding reply:", error);
@@ -253,17 +326,19 @@ export function PostModal({
 
   const handleDeleteReply = async (
     commentKey: string,
-    parentCommentKey: string
+    parentCommentKey?: string
   ) => {
     try {
-      const result = await deleteCommentAPI(
+      const result = await deleteComment(
         post._id,
         commentKey,
-        true,
+        true, // isReply = true
         parentCommentKey
       );
       if (result.success) {
-        await fetchComments();
+        await fetchComments(); // Fetch fresh comments
+      } else {
+        console.error("❌ Error deleting reply:", result.error);
       }
     } catch (error) {
       console.error("Error deleting reply:", error);
@@ -287,17 +362,19 @@ export function PostModal({
     parentCommentKey: string
   ) => {
     try {
-      const result = await updateCommentAPI(
+      const result = await editComment(
         post._id,
         commentKey,
         editText.trim(),
-        true,
+        true, // isReply = true
         parentCommentKey
       );
       if (result.success) {
         await fetchComments();
         setEditingCommentKey(null);
         setEditText("");
+      } else {
+        console.error("❌ Error updating reply:", result.error);
       }
     } catch (error) {
       console.error("Error saving reply edit:", error);
@@ -443,7 +520,7 @@ export function PostModal({
                     {isEditing ? (
                       <>
                         <button
-                          onClick={() => handleSaveEdit(comment._key)}
+                          onClick={() => handleSaveEdit(comment._key, editText)}
                           className="text-green-400 hover:text-green-300"
                           title="Save"
                         >
@@ -507,7 +584,10 @@ export function PostModal({
           {/* Reply form */}
           {isReplying && (
             <form
-              onSubmit={(e) => handleAddReply(e, comment._key)}
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddReply(comment._key);
+              }}
               className="ml-11 mt-2 flex items-center gap-2"
             >
               <div className="flex-1 relative">
@@ -909,4 +989,4 @@ export function PostModal({
       </div>
     </GlassModal>
   );
-}
+});

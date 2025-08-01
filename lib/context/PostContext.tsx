@@ -55,7 +55,7 @@ export function usePost() {
 }
 
 export function PostProvider({ children }: { children: React.ReactNode }) {
-  console.log("🔄 PostProvider render");
+  // console.log("🔄 PostProvider render");
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
@@ -68,16 +68,16 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
 
   // Log state changes
   useEffect(() => {
-    console.log("📊 PostContext state changed:", {
-      postsLength: posts.length,
-      userPostsLength: userPosts.length,
-      achievementPostsLength: achievementPosts.length,
-      latestPostsLength: latestPosts.length,
-      popularPostsLength: popularPosts.length,
-      loading,
-      error: !!error,
-      isInitialized,
-    });
+    // console.log("📊 PostContext state changed:", {
+    //   postsLength: posts.length,
+    //   userPostsLength: userPosts.length,
+    //   achievementPostsLength: achievementPosts.length,
+    //   latestPostsLength: latestPosts.length,
+    //   popularPostsLength: popularPosts.length,
+    //   loading,
+    //   error: !!error,
+    //   isInitialized
+    // });
   }, [
     posts,
     userPosts,
@@ -247,11 +247,11 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
   const likePost = useCallback(
     async (postId: string, userId: string) => {
       try {
-        console.log("=== Starting client-side like operation ===");
+        // console.log("=== Starting client-side like operation ===");
 
         // Make the backend call
         const result = await likePostAction(postId, userId);
-        console.log("Server action result:", result);
+        // console.log("Server action result:", result);
 
         if (!result.success) {
           throw new Error(result.error || "Failed to like/unlike post");
@@ -280,6 +280,12 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
 
   const addComment = useCallback(
     async (postId: string, text: string, author: any) => {
+      console.log("📝 PostContext addComment called:", {
+        postId,
+        text: text.substring(0, 50) + "...",
+        authorId: author._id,
+      });
+
       try {
         setLoading(true);
         setError(null);
@@ -290,8 +296,11 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
           author: { _type: "reference", _ref: author._id },
           createdAt: new Date().toISOString(),
         });
-        // Refresh posts to include the new comment
-        await fetchPosts();
+
+        console.log("✅ Comment created successfully, NOT refetching posts");
+        // Don't refresh posts - let individual components handle their own updates
+        // await fetchPosts(); // This was causing the re-renders!
+
         return result;
       } catch (err) {
         setError("Failed to add comment");
@@ -301,17 +310,25 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     },
-    [fetchPosts]
+    [] // No dependencies needed
   );
 
   const deleteComment = useCallback(
     async (postId: string, commentKey: string) => {
+      console.log("🗑️ PostContext deleteComment called:", {
+        postId,
+        commentKey,
+      });
+
       try {
         setLoading(true);
         setError(null);
         const result = await client.delete(commentKey);
-        // Refresh posts to remove the deleted comment
-        await fetchPosts();
+
+        console.log("✅ Comment deleted successfully, NOT refetching posts");
+        // Don't refresh posts - let individual components handle their own updates
+        // await fetchPosts(); // This was causing the re-renders!
+
         return result;
       } catch (err) {
         setError("Failed to delete comment");
@@ -321,11 +338,17 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     },
-    [fetchPosts]
+    [] // No dependencies needed
   );
 
   const updateComment = useCallback(
     async (postId: string, commentKey: string, text: string) => {
+      console.log("✏️ PostContext updateComment called:", {
+        postId,
+        commentKey,
+        text: text.substring(0, 50) + "...",
+      });
+
       try {
         setLoading(true);
         setError(null);
@@ -340,8 +363,11 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
             },
           ])
           .commit();
-        // Refresh posts to update the comment
-        await fetchPosts();
+
+        console.log("✅ Comment updated successfully, NOT refetching posts");
+        // Don't refresh posts - let individual components handle their own updates
+        // await fetchPosts(); // This was causing the re-renders!
+
         return result;
       } catch (err) {
         setError("Failed to update comment");
@@ -351,7 +377,7 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     },
-    [fetchPosts]
+    [] // No dependencies needed
   );
 
   const value = {

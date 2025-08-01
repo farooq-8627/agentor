@@ -94,7 +94,7 @@ export interface UserProfiles {
 }
 
 export function useUserProfiles(): UserProfiles {
-  console.log("🔄 useUserProfiles hook called");
+  // console.log("🔄 useUserProfiles hook called");
 
   const { user } = useClerkUser();
   const [profiles, setProfiles] = useState<{
@@ -111,23 +111,21 @@ export function useUserProfiles(): UserProfiles {
   const [lastUserId, setLastUserId] = useState<string | null>(null);
 
   const fetchProfiles = useCallback(async () => {
-    console.log("🌐 useUserProfiles: fetchProfiles called:", {
-      userId: user?.id,
-      lastUserId,
-      hasExistingData: profiles.agentProfiles.length > 0,
-    });
+    // console.log("🌐 useUserProfiles: fetchProfiles called:", {
+    //   userId: user?.id,
+    //   lastUserId,
+    //   hasExistingData: profiles.agentProfiles.length > 0
+    // });
 
     if (!user?.id) {
-      console.log("❌ useUserProfiles: No user ID, skipping fetch");
+      // console.log("❌ useUserProfiles: No user ID, skipping fetch");
       setProfiles((prev) => ({ ...prev, loading: false }));
       return;
     }
 
     // Skip if we already have data for this user
     if (lastUserId === user.id && profiles.agentProfiles.length > 0) {
-      console.log(
-        "✅ useUserProfiles: Skipping fetch - already have data for user"
-      );
+      // console.log("✅ useUserProfiles: Skipping fetch - already have data for user");
       return;
     }
 
@@ -217,7 +215,7 @@ export function useUserProfiles(): UserProfiles {
 
       const result = await client.fetch(query, { userId: user.id });
 
-      console.log("Query for UserProfiles Result:", result);
+      // console.log("Query for UserProfiles Result:", result);
 
       if (result) {
         setProfiles({
@@ -247,15 +245,15 @@ export function useUserProfiles(): UserProfiles {
   }, [user?.id]); // Remove lastUserId and profiles.agentProfiles.length from dependencies
 
   useEffect(() => {
-    console.log("🔄 useUserProfiles useEffect triggered:", {
-      userId: user?.id,
-      lastUserId,
-      shouldFetch: !!(user?.id && user.id !== lastUserId),
-    });
+    // console.log("🔄 useUserProfiles useEffect triggered:", {
+    //   userId: user?.id,
+    //   lastUserId,
+    //   shouldFetch: !!(user?.id && user.id !== lastUserId)
+    // });
 
     // Only fetch if user exists and we haven't fetched for this user yet
     if (user?.id && user.id !== lastUserId) {
-      console.log("🚀 useUserProfiles: Triggering fetchProfiles");
+      // console.log("🚀 useUserProfiles: Triggering fetchProfiles");
       fetchProfiles();
     }
   }, [user?.id, fetchProfiles]); // Simplified dependencies

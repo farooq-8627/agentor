@@ -131,10 +131,10 @@ export const RecommendationSidebar: React.FC<RecommendationSidebarProps> =
       showHeader = true,
       loading: externalLoading = false,
     }) => {
-      console.log("🔄 RecommendationSidebar render:", {
-        externalLoading,
-        timestamp: new Date().toISOString(),
-      });
+      // console.log("🔄 RecommendationSidebar render:", {
+      //   externalLoading,
+      //   timestamp: new Date().toISOString()
+      // });
 
       const { user: currentUser } = useUser();
       const { agentProfiles, clientProfiles } = useUserProfiles();

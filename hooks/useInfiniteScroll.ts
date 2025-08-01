@@ -73,13 +73,15 @@ export function useInfiniteScroll<T>({
         stackTrace: new Error().stack?.split("\n").slice(1, 4),
       });
 
-      if (process.env.NODE_ENV === "development") {
-        console.log("🔄 Resetting infinite scroll:", {
-          newDataLength: newData.length,
-          initialBatchSize,
-          willShow: Math.min(initialBatchSize, newData.length),
-        });
-      }
+      // Remove the duplicate dev log
+      // if (process.env.NODE_ENV === "development") {
+      //   console.log("🔄 Resetting infinite scroll:", {
+      //     newDataLength: newData.length,
+      //     initialBatchSize,
+      //     willShow: Math.min(initialBatchSize, newData.length),
+      //   });
+      // }
+
       setAllData(newData);
       setVisibleCount(Math.min(initialBatchSize, newData.length));
       setIsLoading(false);
