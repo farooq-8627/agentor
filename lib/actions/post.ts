@@ -6,15 +6,10 @@ import { revalidatePath } from "next/cache";
 
 export async function likePost(postId: string, userId: string) {
   if (!process.env.SANITY_API_TOKEN) {
-    console.error("SANITY_API_TOKEN is not configured");
     return { success: false, error: "Server configuration error" };
   }
 
   try {
-    console.log("=== Starting server-side like operation ===");
-    console.log("PostID:", postId);
-    console.log("UserID:", userId);
-
     // Get user details first - handle both prefixed and unprefixed IDs
     const sanitizedUserId = userId.startsWith("user-")
       ? userId
@@ -41,16 +36,13 @@ export async function likePost(postId: string, userId: string) {
     const existingLikes = await backendClient.fetch(
       postQueries.getPostLikes(postId)
     );
-    console.log("Existing likes:", existingLikes);
 
     const hasLiked = existingLikes?.likes?.some(
       (like: any) =>
         like.personalDetails?.username === userDetails.personalDetails.username
     );
-    console.log("Has user liked?", hasLiked);
 
     if (hasLiked) {
-      console.log("Removing like...");
       // Remove like by finding the like with matching username
       const likesToKeep = existingLikes.likes.filter(
         (like: any) =>
@@ -66,7 +58,6 @@ export async function likePost(postId: string, userId: string) {
       // revalidatePath("/dashboard/[username]", "layout");
       return { success: true, action: "unlike" };
     } else {
-      console.log("Adding like...");
       // Add like with proper user details
       const likeData = {
         _type: "like",
@@ -93,7 +84,6 @@ export async function likePost(postId: string, userId: string) {
       return { success: true, action: "like" };
     }
   } catch (error) {
-    console.error("Error in likePost server action:", error);
     return {
       success: false,
       error:

@@ -114,33 +114,6 @@ export default function FeedPage() {
     isAchievementFilter,
   ]);
 
-  // Light debug logging only in development
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.log("Feed data:", {
-        count: currentPosts?.length || 0,
-        loading,
-        error: !!error,
-        hasFilters: search || authorTypes.length > 0 || isAchievementFilter,
-        posts: posts?.length || 0,
-        latestPosts: latestPosts?.length || 0,
-        popularPosts: popularPosts?.length || 0,
-        achievementPosts: achievementPosts?.length || 0,
-      });
-    }
-  }, [
-    currentPosts?.length,
-    loading,
-    error,
-    search,
-    authorTypes.length,
-    isAchievementFilter,
-    posts?.length,
-    latestPosts?.length,
-    popularPosts?.length,
-    achievementPosts?.length,
-  ]);
-
   const handleSearchAndFiltersChange = useCallback(
     (
       searchQuery: string,

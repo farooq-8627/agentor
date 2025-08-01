@@ -6,10 +6,15 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
-import { Post, PostFilter, Like } from "@/types/post";
+import { Post, PostFilter, Like, Author } from "@/types/post";
 import { postQueries } from "../queries/post";
 import { client } from "@/sanity/lib/client";
 import { likePost as likePostAction } from "@/lib/actions/post";
+import {
+  addComment as addCommentAction,
+  deleteComment as deleteCommentAction,
+  editComment as editCommentAction,
+} from "@/lib/actions/comments";
 
 interface PostContextType {
   posts: Post[];
@@ -35,12 +40,24 @@ interface PostContextType {
   deletePost: (postId: string) => Promise<void>;
   likePost: (postId: string, userId: string) => Promise<void>;
   unlikePost: (postId: string, userId: string) => Promise<void>;
-  addComment: (postId: string, text: string, author: any) => Promise<any>;
-  deleteComment: (postId: string, commentKey: string) => Promise<any>;
+  addComment: (
+    postId: string,
+    content: string,
+    author: Author,
+    parentCommentKey?: string
+  ) => Promise<any>;
+  deleteComment: (
+    postId: string,
+    commentKey: string,
+    isReply?: boolean,
+    parentCommentKey?: string
+  ) => Promise<any>;
   updateComment: (
     postId: string,
     commentKey: string,
-    text: string
+    content: string,
+    isReply?: boolean,
+    parentCommentKey?: string
   ) => Promise<any>;
 }
 
@@ -279,33 +296,29 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addComment = useCallback(
-    async (postId: string, text: string, author: any) => {
-      console.log("📝 PostContext addComment called:", {
-        postId,
-        text: text.substring(0, 50) + "...",
-        authorId: author._id,
-      });
-
+    async (
+      postId: string,
+      content: string,
+      author: Author,
+      parentCommentKey?: string
+    ) => {
       try {
         setLoading(true);
         setError(null);
-        const result = await client.create({
-          _type: "comment",
-          post: { _type: "reference", _ref: postId },
-          text: text,
-          author: { _type: "reference", _ref: author._id },
-          createdAt: new Date().toISOString(),
-        });
+        const result = await addCommentAction(
+          postId,
+          content,
+          author,
+          parentCommentKey
+        );
 
-        console.log("✅ Comment created successfully, NOT refetching posts");
-        // Don't refresh posts - let individual components handle their own updates
-        // await fetchPosts(); // This was causing the re-renders!
-
+        if (result.success) {
+          // Don't refresh posts - let individual components handle their own updates
+          // await fetchPosts(); // Commented out
+        }
         return result;
-      } catch (err) {
-        setError("Failed to add comment");
-        console.error("Error adding comment:", err);
-        return { success: false, error: "Failed to add comment" };
+      } catch (error) {
+        throw error;
       } finally {
         setLoading(false);
       }
@@ -314,26 +327,29 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
   );
 
   const deleteComment = useCallback(
-    async (postId: string, commentKey: string) => {
-      console.log("🗑️ PostContext deleteComment called:", {
-        postId,
-        commentKey,
-      });
-
+    async (
+      postId: string,
+      commentKey: string,
+      isReply?: boolean,
+      parentCommentKey?: string
+    ) => {
       try {
         setLoading(true);
         setError(null);
-        const result = await client.delete(commentKey);
+        const result = await deleteCommentAction(
+          postId,
+          commentKey,
+          isReply,
+          parentCommentKey
+        );
 
-        console.log("✅ Comment deleted successfully, NOT refetching posts");
-        // Don't refresh posts - let individual components handle their own updates
-        // await fetchPosts(); // This was causing the re-renders!
-
+        if (result.success) {
+          // Don't refresh posts - let individual components handle their own updates
+          // await fetchPosts(); // Commented out
+        }
         return result;
-      } catch (err) {
-        setError("Failed to delete comment");
-        console.error("Error deleting comment:", err);
-        return { success: false, error: "Failed to delete comment" };
+      } catch (error) {
+        throw error;
       } finally {
         setLoading(false);
       }
@@ -342,37 +358,31 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateComment = useCallback(
-    async (postId: string, commentKey: string, text: string) => {
-      console.log("✏️ PostContext updateComment called:", {
-        postId,
-        commentKey,
-        text: text.substring(0, 50) + "...",
-      });
-
+    async (
+      postId: string,
+      commentKey: string,
+      content: string,
+      isReply?: boolean,
+      parentCommentKey?: string
+    ) => {
       try {
         setLoading(true);
         setError(null);
-        const result = await client
-          .patch(postId)
-          .setIfMissing({ comments: [] })
-          .insert("after", "comments[-1]", [
-            {
-              _key: commentKey,
-              _type: "comment",
-              text: text,
-            },
-          ])
-          .commit();
+        const result = await editCommentAction(
+          postId,
+          commentKey,
+          content,
+          isReply,
+          parentCommentKey
+        );
 
-        console.log("✅ Comment updated successfully, NOT refetching posts");
-        // Don't refresh posts - let individual components handle their own updates
-        // await fetchPosts(); // This was causing the re-renders!
-
+        if (result.success) {
+          // Don't refresh posts - let individual components handle their own updates
+          // await fetchPosts(); // Commented out
+        }
         return result;
-      } catch (err) {
-        setError("Failed to update comment");
-        console.error("Error updating comment:", err);
-        return { success: false, error: "Failed to update comment" };
+      } catch (error) {
+        throw error;
       } finally {
         setLoading(false);
       }

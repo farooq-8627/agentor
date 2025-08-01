@@ -151,9 +151,12 @@ export const postQueries = {
     return `*[_type == "post"] | order(length(likes) desc, createdAt desc)[0...${limit}]${postProjection}`;
   },
 
-  getPostComments: (postId: string) => {
-    console.log("Building comment query for post:", postId);
-    const authorProjection = `{
+  getPostComments: (postId: string): string => {
+    if (!postId) {
+      throw new Error("Post ID is required for fetching comments");
+    }
+
+    const authorFragment = `
       "_id": _id,
       "personalDetails": {
         "username": personalDetails.username,
@@ -166,7 +169,7 @@ export const postQueries = {
       "coreIdentity": {
         "fullName": coreIdentity.fullName
       }
-    }`;
+    `;
 
     const query = `*[_type == "post" && _id == "${postId}"][0] {
       "comments": comments[] {
@@ -176,7 +179,7 @@ export const postQueries = {
         isEdited,
         updatedAt,
         "author": coalesce(
-          author->${authorProjection},
+          author->{${authorFragment}},
           {
             "_id": author._id,
             "personalDetails": author.personalDetails,
@@ -190,7 +193,7 @@ export const postQueries = {
           isEdited,
           updatedAt,
           "author": coalesce(
-            author->${authorProjection},
+            author->{${authorFragment}},
             {
               "_id": author._id,
               "personalDetails": author.personalDetails,
@@ -200,7 +203,7 @@ export const postQueries = {
         }
       }
     }`;
-    console.log("Generated GROQ query:", query);
+
     return query;
   },
 

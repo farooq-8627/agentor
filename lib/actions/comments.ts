@@ -20,9 +20,6 @@ export async function addComment(
   parentCommentKey?: string
 ): Promise<CommentActionResult> {
   try {
-    console.log("=== Starting comment submission ===");
-    console.log("Input data:", { postId, text, author, parentCommentKey });
-
     // Create a reference to the user document
     const authorRef = {
       _type: "reference",
@@ -38,7 +35,6 @@ export async function addComment(
       isEdited: false,
       replies: [],
     };
-    console.log("Created comment object:", newComment);
 
     let patch;
     if (parentCommentKey) {
@@ -59,9 +55,7 @@ export async function addComment(
         .append("comments", [newComment]);
     }
 
-    console.log("Submitting to Sanity...");
     const result = await patch.commit({ autoGenerateArrayKeys: true });
-    console.log("Sanity mutation result:", result);
 
     // Don't revalidate paths - client handles optimistic updates
     // revalidatePath("/feed");
@@ -81,21 +75,12 @@ export async function addComment(
         coreIdentity: author.coreIdentity,
       },
     };
-    console.log("Returning response data:", responseData);
-    console.log("=== Comment submission complete ===");
 
     return {
       success: true,
       data: responseData,
     };
   } catch (error) {
-    console.error("=== Comment submission failed ===");
-    console.error("Detailed error:", {
-      error,
-      postId,
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
-      errorStack: error instanceof Error ? error.stack : undefined,
-    });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to add comment",
@@ -114,15 +99,6 @@ export async function editComment(
   parentCommentKey?: string
 ): Promise<CommentActionResult> {
   try {
-    console.log("=== Starting comment edit ===");
-    console.log("Input data:", {
-      postId,
-      commentKey,
-      text,
-      isReply,
-      parentCommentKey,
-    });
-
     let patch;
     if (isReply && parentCommentKey) {
       // Edit a reply
@@ -144,7 +120,6 @@ export async function editComment(
     }
 
     const result = await patch.commit();
-    console.log("Edit result:", result);
 
     // Don't revalidate paths - client handles optimistic updates
     // revalidatePath("/feed");
@@ -160,8 +135,6 @@ export async function editComment(
       },
     };
   } catch (error) {
-    console.error("=== Comment edit failed ===");
-    console.error("Error editing comment:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to edit comment",
@@ -179,14 +152,6 @@ export async function deleteComment(
   parentCommentKey?: string
 ): Promise<CommentActionResult> {
   try {
-    console.log("=== Starting comment deletion ===");
-    console.log("Input data:", {
-      postId,
-      commentKey,
-      isReply,
-      parentCommentKey,
-    });
-
     let patch;
     if (isReply && parentCommentKey) {
       // Remove a reply from a comment
@@ -203,7 +168,6 @@ export async function deleteComment(
     }
 
     const result = await patch.commit();
-    console.log("Delete result:", result);
 
     // Don't revalidate paths - client handles optimistic updates
     // revalidatePath("/feed");
@@ -213,8 +177,6 @@ export async function deleteComment(
       success: true,
     };
   } catch (error) {
-    console.error("=== Comment deletion failed ===");
-    console.error("Error deleting comment:", error);
     return {
       success: false,
       error:
@@ -232,8 +194,6 @@ export async function updateComment(
   text: string
 ): Promise<CommentActionResult> {
   try {
-    console.log("Updating comment:", { postId, commentKey, text });
-
     const result = await backendClient
       .patch(postId)
       .set({
@@ -243,21 +203,12 @@ export async function updateComment(
       })
       .commit();
 
-    console.log("Update comment result:", result);
-
     // Don't revalidate paths - client handles optimistic updates
     // revalidatePath("/feed");
     // revalidatePath("/dashboard/[username]", "layout");
     // revalidatePath("/dashboard/[username]/posts", "page");
     return { success: true };
   } catch (error) {
-    console.error("Error updating comment:", {
-      error,
-      postId,
-      commentKey,
-      text,
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
-    });
     return {
       success: false,
       error:

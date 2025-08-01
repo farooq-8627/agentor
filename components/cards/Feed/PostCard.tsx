@@ -30,6 +30,7 @@ import { useUser } from "@clerk/nextjs";
 import { Like } from "@/types/post";
 import { OptimizedVideo } from "@/components/shared/OptimizedVideo";
 import { likePost as likePostAction } from "@/lib/actions/post";
+import { showError, showSuccess } from "@/lib/utils/errorHandler";
 
 export interface Media {
   type: "image" | "video" | "pdf";
@@ -71,12 +72,6 @@ interface PostCardProps {
 }
 
 export function PostCard({ post: initialPost, className }: PostCardProps) {
-  // console.log("🔄 PostCard render:", {
-  //   postId: initialPost._id,
-  //   title: initialPost.title?.substring(0, 30) + "...",
-  //   timestamp: new Date().toISOString(),
-  // });
-
   const [isExpanded, setIsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
@@ -90,13 +85,6 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
 
   // Track post prop changes
   useEffect(() => {
-    // console.log("📝 PostCard: post prop changed:", {
-    //   postId: initialPost._id,
-    //   from: post._id,
-    //   to: initialPost._id,
-    //   likesChanged: post.likes.length !== initialPost.likes.length,
-    // });
-
     // Only update if the post ID actually changed (different post)
     if (initialPost._id !== post._id) {
       setPost(initialPost);
@@ -457,13 +445,6 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
   };
 
   const handleLike = async () => {
-    // console.log("❤️ Like operation started:", {
-    //   postId: post._id,
-    //   userId: user?.id,
-    //   currentLikes: post.likes.length,
-    //   isCurrentlyLiked: isLiked,
-    // });
-
     if (!user?.id || !user?.username) return;
 
     // Create optimistic like object
@@ -496,27 +477,17 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
       likes: updatedLikes,
     };
 
-    // console.log("🎯 Optimistic update applied:", {
-    //   postId: post._id,
-    //   oldLikes: post.likes.length,
-    //   newLikes: updatedLikes.length,
-    //   action: isLiked ? "unlike" : "like",
-    // });
-
     // Update the UI immediately
     setPost(updatedPost);
 
     try {
       // Make the backend call (this won't trigger data refetch anymore)
-      // console.log("🌐 Making backend call...");
       await likePostAction(post._id, user.id);
-      // console.log("✅ Backend call successful");
       // Success! Backend is updated, UI is already correct
     } catch (error) {
       // If there's an error, revert the optimistic update
-      // console.error("❌ Error handling like:", error);
-      // console.log("🔄 Reverting optimistic update");
       setPost(post); // Revert to original state
+      showError(error, "Failed to like post");
     }
   };
 

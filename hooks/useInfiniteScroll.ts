@@ -33,15 +33,6 @@ export function useInfiniteScroll<T>({
   const loadMore = useCallback(() => {
     if (isLoading || !hasMore) return;
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("🔄 Loading more items:", {
-        currentVisible: visibleCount,
-        totalData: allData.length,
-        batchSize,
-        hasMore,
-      });
-    }
-
     setIsLoading(true);
 
     // Clear any existing timeout
@@ -52,13 +43,6 @@ export function useInfiniteScroll<T>({
     // Add a small delay to simulate loading and prevent rapid firing
     loadingTimeoutRef.current = setTimeout(() => {
       const newCount = Math.min(visibleCount + batchSize, allData.length);
-      if (process.env.NODE_ENV === "development") {
-        console.log("✅ Loaded more items:", {
-          oldCount: visibleCount,
-          newCount,
-          totalData: allData.length,
-        });
-      }
       setVisibleCount(newCount);
       setIsLoading(false);
     }, 100);
@@ -66,22 +50,6 @@ export function useInfiniteScroll<T>({
 
   const reset = useCallback(
     (newData: T[]) => {
-      console.log("🔄 useInfiniteScroll reset called:", {
-        newDataLength: newData.length,
-        initialBatchSize,
-        willShow: Math.min(initialBatchSize, newData.length),
-        stackTrace: new Error().stack?.split("\n").slice(1, 4),
-      });
-
-      // Remove the duplicate dev log
-      // if (process.env.NODE_ENV === "development") {
-      //   console.log("🔄 Resetting infinite scroll:", {
-      //     newDataLength: newData.length,
-      //     initialBatchSize,
-      //     willShow: Math.min(initialBatchSize, newData.length),
-      //   });
-      // }
-
       setAllData(newData);
       setVisibleCount(Math.min(initialBatchSize, newData.length));
       setIsLoading(false);
@@ -97,16 +65,6 @@ export function useInfiniteScroll<T>({
         observer.current = new IntersectionObserver(
           (entries) => {
             const entry = entries[0];
-            if (process.env.NODE_ENV === "development") {
-              console.log("👁️ Intersection observed:", {
-                isIntersecting: entry.isIntersecting,
-                hasMore,
-                isLoading,
-                visibleCount,
-                totalData: allData.length,
-                willTrigger: entry.isIntersecting && hasMore && !isLoading,
-              });
-            }
             if (entry.isIntersecting && hasMore && !isLoading) {
               loadMore();
             }
@@ -133,15 +91,6 @@ export function useInfiniteScroll<T>({
         const scrollable = scrollHeight > windowHeight + 100; // 100px buffer
 
         if (!scrollable && hasMore && !isLoading) {
-          if (process.env.NODE_ENV === "development") {
-            console.log("🔄 Auto-loading more items (page not scrollable)", {
-              scrollHeight,
-              windowHeight,
-              scrollable,
-              hasMore,
-              isLoading,
-            });
-          }
           loadMore();
         }
       }, 500);

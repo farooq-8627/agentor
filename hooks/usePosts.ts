@@ -3,6 +3,8 @@ import { Post, PostFilter, Comment, Author } from "@/types/post";
 import { addComment, deleteComment, editComment } from "@/lib/actions/comments";
 import { usePost } from "@/lib/context/PostContext";
 import { client } from "@/sanity/lib/client";
+import { postQueries } from "@/lib/queries/post";
+import { showError } from "@/lib/utils/errorHandler";
 
 interface UsePostsOptions {
   search?: string;
@@ -53,11 +55,11 @@ export function usePosts(options: UsePostsOptions = {}) {
         await originalFetchLatestPosts();
         await originalFetchPopularPosts();
       } catch (error) {
-        console.error("Error in initial fetch:", error);
+        showError(error, "Error in initial fetch");
       }
     };
 
-    // Only fetch if we don't have posts already AND not loading
+    // Only fetch on mount if no data exists
     if (
       posts.length === 0 &&
       latestPosts.length === 0 &&
@@ -66,27 +68,49 @@ export function usePosts(options: UsePostsOptions = {}) {
     ) {
       initialFetch();
     }
-  }, []); // Remove all dependencies - only run on mount
+  }, []); // Empty dependency array - mount only
 
-  // Manual refresh function that can be called explicitly
   const manualRefresh = useCallback(async () => {
     try {
       await originalFetchPosts();
       await originalFetchLatestPosts();
       await originalFetchPopularPosts();
     } catch (error) {
-      console.error("Error in manual refresh:", error);
+      showError(error, "Error in manual refresh");
     }
   }, [originalFetchPosts, originalFetchLatestPosts, originalFetchPopularPosts]);
 
-  // Memoized filter query string - ONLY memoizes the query string, not the fetch
+  // Memoized filtered query to prevent unnecessary re-builds
   const filteredQuery = useMemo(() => {
-    // If no search or author type filters, return null to indicate no filtering needed
-    if (!search && authorTypes.length === 0) {
+    if (!search && (!authorTypes || authorTypes.length === 0)) {
       return null;
     }
 
-    const postProjection = `{
+    let baseQuery = '*[_type == "post"';
+
+    // Add search conditions
+    const conditions = [];
+    if (search) {
+      conditions.push(`(
+        title match "*${search}*" ||
+        content match "*${search}*" ||
+        tags[]->title match "*${search}*"
+      )`);
+    }
+
+    // Add author type filters
+    if (authorTypes && authorTypes.length > 0) {
+      const authorTypeConditions = authorTypes.map(
+        (type) => `author->authorType == "${type}"`
+      );
+      conditions.push(`(${authorTypeConditions.join(" || ")})`);
+    }
+
+    if (conditions.length > 0) {
+      baseQuery += ` && ${conditions.join(" && ")}`;
+    }
+
+    baseQuery += `] | order(_createdAt desc) {
       ...,
       "author": coalesce(
         author->{
@@ -103,9 +127,6 @@ export function usePosts(options: UsePostsOptions = {}) {
             fullName,
             tagline,
             bio
-          },
-          mustHaveRequirements {
-            industryDomain
           }
         },
         author->userId->{
@@ -122,9 +143,6 @@ export function usePosts(options: UsePostsOptions = {}) {
             fullName,
             tagline,
             bio
-          },
-          mustHaveRequirements {
-            industryDomain
           }
         }
       ),
@@ -137,86 +155,8 @@ export function usePosts(options: UsePostsOptions = {}) {
             "url": file.asset->url
           }
         }
-      },
-      comments[] {
-        _key,
-        text,
-        createdAt,
-        "author": coalesce(
-          author->{
-            _id,
-            personalDetails {
-              username,
-              profilePicture {
-                asset-> {
-                  url
-                }
-              }
-            },
-            coreIdentity {
-              fullName
-            }
-          },
-          {
-            "_id": author._id,
-            "personalDetails": author.personalDetails,
-            "coreIdentity": author.coreIdentity
-          }
-        ),
-      },
-      likes[] {
-        _id,
-        personalDetails {
-          username,
-          profilePicture {
-            asset-> {
-              url
-            }
-          }
-        }
       }
     }`;
-
-    let baseQuery = `*[_type == "post"`;
-    const filterConditions: string[] = [];
-
-    // Enhanced search condition - search in title, content, author names, and tags
-    if (search) {
-      filterConditions.push(`(
-        title match "*${search}*" ||
-        content match "*${search}*" ||
-        author->coreIdentity.fullName match "*${search}*" ||
-        author->personalDetails.username match "*${search}*" ||
-        author->userId->coreIdentity.fullName match "*${search}*" ||
-        author->userId->personalDetails.username match "*${search}*" ||
-        "${search}" in tags[]
-      )`);
-    }
-
-    // Author type filtering
-    if (authorTypes.length > 0) {
-      const authorConditions = authorTypes
-        .map((type) => `authorType == "${type}"`)
-        .join(" || ");
-      filterConditions.push(`(${authorConditions})`);
-    }
-
-    // Add filter conditions to base query
-    if (filterConditions.length > 0) {
-      baseQuery += ` && (${filterConditions.join(" && ")})`;
-    }
-
-    baseQuery += `]`;
-
-    // Add sorting
-    if (sort) {
-      baseQuery += ` | order(${sort.field} ${sort.order})`;
-    } else {
-      baseQuery += ` | order(createdAt desc)`;
-    }
-
-    // Add limit and projection
-    baseQuery += `[0...50]${postProjection}`;
 
     return baseQuery;
   }, [search, sort, authorTypes]);
@@ -232,12 +172,10 @@ export function usePosts(options: UsePostsOptions = {}) {
     const fetchFilteredPosts = async () => {
       try {
         setIsFiltering(true);
-        console.log("Executing search query:", filteredQuery);
         const result = await client.fetch(filteredQuery);
-        console.log("Search results:", result);
         setFilteredPosts(result || []);
       } catch (error) {
-        console.error("Error fetching filtered posts:", error);
+        showError(error, "Error fetching filtered posts");
         setFilteredPosts([]);
       } finally {
         setIsFiltering(false);
@@ -275,25 +213,25 @@ export function usePosts(options: UsePostsOptions = {}) {
     return originalFetchPopularPosts();
   }, [shouldShowFiltered, originalFetchPopularPosts]);
 
+  // Comment handlers
   const handleAddComment = useCallback(
     async (
       postId: string,
       text: string,
-      author: Author,
+      author: any,
       parentCommentKey?: string
     ) => {
       try {
         return await addComment(postId, text, author, parentCommentKey);
       } catch (error) {
-        console.error("Error adding comment:", error);
+        showError(error, "Error adding comment");
         return {
           success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to add comment",
+          error: "Failed to add comment",
         };
       }
     },
-    []
+    [addComment]
   );
 
   const handleDeleteComment = useCallback(
@@ -311,15 +249,14 @@ export function usePosts(options: UsePostsOptions = {}) {
           parentCommentKey
         );
       } catch (error) {
-        console.error("Error deleting comment:", error);
+        showError(error, "Error deleting comment");
         return {
           success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to delete comment",
+          error: "Failed to delete comment",
         };
       }
     },
-    []
+    [deleteComment]
   );
 
   const handleEditComment = useCallback(
@@ -339,15 +276,14 @@ export function usePosts(options: UsePostsOptions = {}) {
           parentCommentKey
         );
       } catch (error) {
-        console.error("Error updating comment:", error);
+        showError(error, "Error updating comment");
         return {
           success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to update comment",
+          error: "Failed to update comment",
         };
       }
     },
-    []
+    [editComment]
   );
 
   return {

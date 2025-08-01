@@ -35,6 +35,11 @@ import { client } from "@/sanity/lib/client";
 import { postQueries } from "@/lib/queries/post";
 import { OptimizedVideo } from "@/components/shared/OptimizedVideo";
 import { addComment, deleteComment, editComment } from "@/lib/actions/comments";
+import {
+  showError,
+  showSuccess,
+  handleServerActionError,
+} from "@/lib/utils/errorHandler";
 
 interface Comment {
   _key: string;
@@ -168,36 +173,17 @@ export const PostModal = React.memo(function PostModal({
   }, [isOpen, post._id]); // Only depend on isOpen and post.id
 
   const fetchComments = useCallback(async () => {
-    console.log("🔄 fetchComments called:", {
-      postId: post._id,
-      timestamp: new Date().toISOString(),
-    });
-
     try {
-      console.log("=== Fetching comments ===");
       const query = postQueries.getPostComments(post._id);
-      console.log("Executing query:", query);
-
       const result = await client.fetch(query);
-      console.log("Raw query result:", result);
-
       const comments = result?.comments || [];
-      console.log("Extracted comments:", comments);
-
       setComments(comments);
-      console.log("=== Comments fetch complete ===");
     } catch (error) {
-      console.error("❌ Error fetching comments:", error);
+      showError(error, "Failed to fetch comments");
     }
   }, [post._id]); // Memoize fetchComments
 
   const handleAddComment = async (e: React.FormEvent) => {
-    console.log("💬 Add comment operation started:", {
-      postId: post._id,
-      commentText: commentText.trim(),
-      timestamp: new Date().toISOString(),
-    });
-
     e.preventDefault();
     if (!commentText.trim() || !user?.id) return;
 
@@ -221,19 +207,16 @@ export const PostModal = React.memo(function PostModal({
         },
       };
 
-      console.log("🌐 Making add comment API call...");
       const result = await addComment(post._id, commentText.trim(), authorData);
 
       if (result.success) {
         setCommentText("");
-        console.log("🔄 Reloading comments after add...");
         await fetchComments(); // Reload comments
-        console.log("✅ Add comment operation completed");
       } else {
-        console.error("❌ Error adding comment:", result.error);
+        showError(result.error, "Failed to add comment");
       }
     } catch (error) {
-      console.error("❌ Error adding comment:", error);
+      showError(error, "Failed to add comment");
     } finally {
       setIsSubmitting(false);
     }
@@ -245,10 +228,10 @@ export const PostModal = React.memo(function PostModal({
       if (result.success) {
         await fetchComments(); // Fetch fresh comments
       } else {
-        console.error("❌ Error deleting comment:", result.error);
+        showError(result.error, "Failed to delete comment");
       }
     } catch (error) {
-      console.error("Error deleting comment:", error);
+      showError(error, "Failed to delete comment");
     }
   };
 
@@ -267,10 +250,10 @@ export const PostModal = React.memo(function PostModal({
         await fetchComments(); // Fetch fresh comments
         setEditingCommentKey(null);
       } else {
-        console.error("❌ Error updating comment:", result.error);
+        showError(result.error, "Failed to update comment");
       }
     } catch (error) {
-      console.error("Error updating comment:", error);
+      showError(error, "Failed to update comment");
     }
   };
 
@@ -315,10 +298,10 @@ export const PostModal = React.memo(function PostModal({
         setReplyingToKey(null);
         await fetchComments();
       } else {
-        console.error("❌ Error adding reply:", result.error);
+        showError(result.error, "Failed to add reply");
       }
     } catch (error) {
-      console.error("Error adding reply:", error);
+      showError(error, "Failed to add reply");
     } finally {
       setIsSubmitting(false);
     }
@@ -338,10 +321,10 @@ export const PostModal = React.memo(function PostModal({
       if (result.success) {
         await fetchComments(); // Fetch fresh comments
       } else {
-        console.error("❌ Error deleting reply:", result.error);
+        showError(result.error, "Failed to delete reply");
       }
     } catch (error) {
-      console.error("Error deleting reply:", error);
+      showError(error, "Failed to delete reply");
     }
   };
 
@@ -374,10 +357,10 @@ export const PostModal = React.memo(function PostModal({
         setEditingCommentKey(null);
         setEditText("");
       } else {
-        console.error("❌ Error updating reply:", result.error);
+        showError(result.error, "Failed to update reply");
       }
     } catch (error) {
-      console.error("Error saving reply edit:", error);
+      showError(error, "Failed to update reply");
     }
   };
 

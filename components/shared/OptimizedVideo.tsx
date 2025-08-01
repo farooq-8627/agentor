@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { cn } from "@/lib/utils";
 import { Play, Pause, Volume2, VolumeX, Maximize2, Video } from "lucide-react";
+import { showError } from "@/lib/utils/errorHandler";
 
 interface OptimizedVideoProps {
   src: string;
@@ -65,7 +67,7 @@ export function OptimizedVideo({
           videoElement?.play().catch((error) => {
             // Silently handle play() errors (common with user interaction requirements)
             if (error.name !== "AbortError") {
-              console.log("Video autoplay prevented:", error.message);
+              // Only show significant errors, not normal browser restrictions
             }
           });
           setIsPlaying(true);
@@ -100,92 +102,76 @@ export function OptimizedVideo({
   };
 
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    console.error("Video loading error:", e);
     setVideoError(true);
     setIsVideoLoaded(false);
-    setIsPlaying(false);
   };
 
   const handleTimeUpdate = () => {
-    if (!videoRef.current || videoError) return;
     try {
-      const progress =
-        (videoRef.current.currentTime / videoRef.current.duration) * 100;
-      setProgress(progress);
+      const video = videoRef.current;
+      if (video && !isNaN(video.duration)) {
+        const progress = (video.currentTime / video.duration) * 100;
+        setProgress(progress);
+      }
     } catch (error) {
-      console.log("Video time update error:", error);
+      // Silently handle time update errors
     }
   };
 
-  const togglePlay = async (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!videoRef.current || videoError) return;
-
-    // Mark that user has interacted with the video
-    setHasUserInteracted(true);
-
+  const togglePlayPause = async () => {
     try {
-      if (isPlaying) {
-        videoRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        await videoRef.current.play();
-        setIsPlaying(true);
+      const video = videoRef.current;
+      if (video) {
+        if (isPlaying) {
+          video.pause();
+          setIsPlaying(false);
+        } else {
+          await video.play();
+          setIsPlaying(true);
+        }
       }
     } catch (error) {
-      console.log("Video play/pause error:", error);
       setIsPlaying(false);
     }
   };
 
-  const toggleMute = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!videoRef.current || videoError) return;
-
-    // Mark that user has interacted with the video
-    setHasUserInteracted(true);
-
+  const toggleMute = () => {
     try {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
+      const video = videoRef.current;
+      if (video) {
+        video.muted = !isMuted;
+        setIsMuted(!isMuted);
+      }
     } catch (error) {
-      console.log("Video mute toggle error:", error);
+      // Silently handle mute errors
     }
   };
 
-  const handleFullscreen = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!containerRef.current) return;
+  const handleFullscreen = () => {
     try {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        containerRef.current.requestFullscreen();
+      const video = videoRef.current;
+      if (video) {
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          video.requestFullscreen();
+        }
       }
     } catch (error) {
-      console.log("Fullscreen error:", error);
+      showError(error, "Fullscreen not supported");
     }
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    if (!videoRef.current || !progressBarRef.current || videoError) return;
-
-    // Mark that user has interacted with the video
-    setHasUserInteracted(true);
-
     try {
-      const rect = progressBarRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
-      const time = (percentage / 100) * videoRef.current.duration;
-
-      if (isFinite(time)) {
-        videoRef.current.currentTime = time;
-        setProgress(percentage);
+      const video = videoRef.current;
+      if (video && progressBarRef.current) {
+        const rect = progressBarRef.current.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        video.currentTime = percent * video.duration;
       }
     } catch (error) {
-      console.log("Video seek error:", error);
+      // Silently handle seek errors
     }
   };
 
@@ -201,7 +187,7 @@ export function OptimizedVideo({
       onVideoClick();
     } else {
       // If no click handler, toggle play/pause
-      togglePlay();
+      togglePlayPause();
     }
   };
 
@@ -209,7 +195,7 @@ export function OptimizedVideo({
     e.stopPropagation();
     if (!controls) {
       // If no controls, clicking video should toggle play
-      togglePlay();
+      togglePlayPause();
     }
   };
 
@@ -247,7 +233,7 @@ export function OptimizedVideo({
       {!isPlaying && isVideoLoaded && !videoError && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition-opacity duration-200">
           <button
-            onClick={togglePlay}
+            onClick={togglePlayPause}
             className="bg-white/90 hover:bg-white text-black rounded-full p-4 transition-all duration-200 hover:scale-110"
             aria-label="Play video"
           >
@@ -295,7 +281,7 @@ export function OptimizedVideo({
             {/* Control buttons */}
             <div className="flex items-center gap-4">
               <button
-                onClick={togglePlay}
+                onClick={togglePlayPause}
                 className="text-white hover:text-blue-400 transition-colors"
                 aria-label={isPlaying ? "Pause" : "Play"}
               >
