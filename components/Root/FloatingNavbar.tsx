@@ -119,23 +119,6 @@ export function FloatingNavbar() {
     [user, router]
   );
 
-  // Close when clicking outside
-  useEffect(() => {
-    if (!isExpanded) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        navbarRef.current &&
-        !navbarRef.current.contains(event.target as Node)
-      ) {
-        setIsExpanded(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isExpanded]);
-
   if (shouldHideNavbar || !mounted) {
     return null;
   }
@@ -231,22 +214,35 @@ export function FloatingNavbar() {
             {/* Auth Section */}
             <div className="border-t border-gray-700/50 p-3">
               {isSignedIn ? (
-                <div className="flex items-center bg-gray-800/30 rounded-xl space-x-3 p-3">
+                <div className="flex items-center space-x-3">
                   <UserButton
+                    afterSignOutUrl="/"
                     appearance={{
                       elements: {
-                        avatarBox: "w-8 h-8",
-                        userButtonPopoverCard: "bg-gray-900 border-gray-700",
+                        userButtonBox:
+                          "flex items-center space-x-3 bg-gray-800/30 hover:bg-gray-700/30 rounded-xl p-3 transition-colors w-full",
+                        avatarBox:
+                          "w-8 h-8 rounded-full ring-2 ring-violet-500/30 hover:ring-violet-400/50 transition-all duration-200 flex-shrink-0",
+                        userButtonPopoverCard:
+                          "bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl border border-violet-500/20 shadow-2xl shadow-violet-500/10 rounded-2xl",
                         userButtonPopoverActionButton:
-                          "text-gray-200 hover:text-white",
+                          "text-gray-300 hover:text-white hover:bg-violet-500/10 rounded-xl transition-all duration-200 mx-1 my-0.5",
+                        userButtonPopoverActionButtonText:
+                          "text-sm font-medium",
+                        userButtonPopoverActionButtonIcon: "text-violet-400",
+                        userButtonPopoverFooter: "hidden",
+                        userButtonPopoverHeader:
+                          "border-b border-gray-700/50 pb-4 mb-2",
+                        userButtonPopoverUserName: "text-white font-semibold",
+                        userButtonPopoverUserEmailAddress:
+                          "text-gray-400 text-sm",
+                        userButtonPopoverUserIdentifier:
+                          "text-gray-400 text-sm",
+                        userButtonOuterIdentifier:
+                          "text-sm font-medium text-gray-200 truncate ml-3",
                       },
                     }}
                   />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-200 truncate">
-                      {user?.firstName || "User"}
-                    </p>
-                  </div>
                 </div>
               ) : (
                 <div className="space-y-2">
