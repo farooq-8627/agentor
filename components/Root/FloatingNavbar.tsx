@@ -119,6 +119,32 @@ export function FloatingNavbar() {
     [user, router]
   );
 
+  // // Close when clicking outside (but not on Clerk elements)
+  // useEffect(() => {
+  //   if (!isExpanded) return;
+
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     const target = event.target as Element;
+
+  //     // Don't close if clicking on Clerk elements
+  //     if (
+  //       target.closest("[data-clerk-element]") ||
+  //       target.closest(".cl-userButtonPopover") ||
+  //       target.closest(".cl-modal") ||
+  //       target.closest(".cl-modalContent")
+  //     ) {
+  //       return;
+  //     }
+
+  //     if (navbarRef.current && !navbarRef.current.contains(target as Node)) {
+  //       setIsExpanded(false);
+  //     }
+  //   };
+
+  //   document.addEventListener("mousedown", handleClickOutside);
+  //   return () => document.removeEventListener("mousedown", handleClickOutside);
+  // }, [isExpanded]);
+
   if (shouldHideNavbar || !mounted) {
     return null;
   }

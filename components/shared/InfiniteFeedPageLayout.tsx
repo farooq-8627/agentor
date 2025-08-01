@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -54,7 +54,15 @@ export function InfiniteFeedPageLayout({
   initialBatchSize = 5,
   batchSize = 5,
 }: InfiniteFeedPageLayoutProps) {
+  // console.log("🔄 InfiniteFeedPageLayout render:", {
+  //   dataLength: data?.length || 0,
+  //   loading,
+  //   error: !!error,
+  //   timestamp: new Date().toISOString()
+  // });
+
   const [searchInput, setSearchInput] = useState("");
+  const hasInitializedRef = useRef(false);
 
   const {
     visibleItems,
@@ -69,9 +77,27 @@ export function InfiniteFeedPageLayout({
     threshold: 2,
   });
 
-  // Reset infinite scroll when data changes
+  // Reset infinite scroll ONLY on first mount with data
   useEffect(() => {
+    // console.log("🔄 InfiniteFeedPageLayout useEffect triggered:", {
+    //   hasData: !!(data && data.length > 0),
+    //   dataLength: data?.length || 0,
+    //   hasInitialized: hasInitializedRef.current,
+    //   willReset: !!(data && data.length > 0 && !hasInitializedRef.current),
+    // });
+
+    if (data && data.length > 0 && !hasInitializedRef.current) {
+      // console.log("🔄 Resetting infinite scroll - first mount");
+      reset(data || []);
+      hasInitializedRef.current = true;
+    }
+  }, [data, reset]);
+
+  // Manual refresh function that components can call
+  const handleManualRefresh = useCallback(() => {
+    hasInitializedRef.current = false; // Allow re-initialization
     reset(data || []);
+    hasInitializedRef.current = true;
   }, [data, reset]);
 
   const handleSearch = () => {

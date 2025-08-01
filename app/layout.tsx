@@ -31,16 +31,75 @@ const inter = Inter({ subsets: ["latin"] });
  * This object can be customized to change Clerk's built-in appearance. To learn more: https://clerk.com/docs/customization/overview
  */
 const clerkAppearanceObject = {
-  variables: { colorPrimary: "#000000" },
+  variables: {
+    colorPrimary: "#8b5cf6", // violet-500
+    colorBackground: "#0f0f23", // dark background
+    colorText: "#ffffff",
+    colorTextSecondary: "#a1a1aa", // zinc-400
+    colorNeutral: "#18181b", // zinc-900
+    colorInputBackground: "#27272a", // zinc-800
+    colorInputText: "#ffffff",
+    borderRadius: "0.75rem", // rounded-xl
+    fontFamily: "system-ui, sans-serif",
+    fontSize: "14px",
+  },
   elements: {
+    // Main card/container styling
+    card: "bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl border border-violet-500/20 shadow-2xl shadow-violet-500/10",
+    headerTitle: "text-white font-semibold text-xl",
+    headerSubtitle: "text-gray-300 text-sm",
+
+    // Form elements
+    formButtonPrimary:
+      "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg hover:shadow-violet-500/25 transition-all duration-200 border-0",
+    formButtonSecondary:
+      "bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 hover:text-white border border-gray-600/30 hover:border-violet-500/50 rounded-xl transition-all duration-200",
+
+    // Input fields
+    formFieldInput:
+      "bg-gray-800/50 border border-gray-600/30 focus:border-violet-500/50 text-white placeholder:text-gray-400 rounded-xl focus:ring-2 focus:ring-violet-500/20",
+    formFieldLabel: "text-gray-300 font-medium text-sm",
+
+    // Social buttons
     socialButtonsBlockButton:
-      "bg-white border-gray-200 hover:bg-transparent hover:border-black text-gray-600 hover:text-black",
-    socialButtonsBlockButtonText: "font-semibold",
-    formButtonReset:
-      "bg-white border border-solid border-gray-200 hover:bg-transparent hover:border-black text-gray-500 hover:text-black",
-    membersPageInviteButton:
-      "bg-black border border-black border-solid hover:bg-white hover:text-black",
-    card: "bg-[#fafafa]",
+      "bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600/30 hover:border-violet-500/50 text-gray-300 hover:text-white rounded-xl transition-all duration-200",
+    socialButtonsBlockButtonText: "font-medium text-sm",
+
+    // Links and text
+    formFieldAction: "text-violet-400 hover:text-violet-300 font-medium",
+    identityPreviewEditButton: "text-violet-400 hover:text-violet-300",
+    formResendCodeLink: "text-violet-400 hover:text-violet-300",
+
+    // Footer and additional elements
+    footerActionLink: "text-violet-400 hover:text-violet-300 font-medium",
+    formFieldSuccessText: "text-green-400",
+    formFieldErrorText: "text-red-400",
+
+    // Navbar and navigation (for user management pages)
+    navbar: "bg-gray-900/95 border-b border-gray-700/50",
+    navbarButton:
+      "text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg",
+
+    // Dividers and separators
+    dividerLine: "bg-gray-700/50",
+    dividerText: "text-gray-400 text-sm",
+
+    // Profile page specific
+    profileSectionPrimaryButton:
+      "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-medium rounded-xl",
+    profileSectionContent:
+      "bg-gray-800/30 border border-gray-700/50 rounded-xl",
+
+    // Organization specific
+    organizationSwitcherTrigger:
+      "bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600/30 hover:border-violet-500/50 text-gray-300 hover:text-white rounded-xl",
+
+    // Alert and notification styling
+    alertText: "text-gray-300",
+
+    // Badge styling
+    badge:
+      "bg-violet-500/20 text-violet-300 border border-violet-500/30 rounded-full",
   },
 };
 

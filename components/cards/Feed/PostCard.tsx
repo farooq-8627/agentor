@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { GlassCard } from "@/components/UI/GlassCard";
@@ -13,11 +13,6 @@ import {
   ExternalLink,
   MoreHorizontal,
   FileText,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Maximize2,
   Video,
   File,
   Globe,
@@ -30,13 +25,11 @@ import { PostModal } from "@/components/cards/Feed/PostModal";
 import { formatPostTime } from "@/lib/formatPostTime";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/UI/avatar";
 import { cn } from "@/lib/utils";
-import { usePosts } from "@/hooks/usePosts";
 import type { Comment } from "@/types/post";
-import { postQueries } from "@/lib/queries/post";
-import { client } from "@/sanity/lib/client";
 import { useUser } from "@clerk/nextjs";
-import { usePost } from "@/lib/context/PostContext";
 import { Like } from "@/types/post";
+import { OptimizedVideo } from "@/components/shared/OptimizedVideo";
+import { likePost as likePostAction } from "@/lib/actions/post";
 
 export interface Media {
   type: "image" | "video" | "pdf";
@@ -78,6 +71,12 @@ interface PostCardProps {
 }
 
 export function PostCard({ post: initialPost, className }: PostCardProps) {
+  // console.log("🔄 PostCard render:", {
+  //   postId: initialPost._id,
+  //   title: initialPost.title?.substring(0, 30) + "...",
+  //   timestamp: new Date().toISOString(),
+  // });
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
@@ -86,7 +85,23 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
   );
   const [post, setPost] = useState(initialPost);
   const { user } = useUser();
-  const { likePost } = usePost();
+  // Remove PostContext dependency - handle likes independently
+  // const { likePost } = usePost();
+
+  // Track post prop changes
+  useEffect(() => {
+    // console.log("📝 PostCard: post prop changed:", {
+    //   postId: initialPost._id,
+    //   from: post._id,
+    //   to: initialPost._id,
+    //   likesChanged: post.likes.length !== initialPost.likes.length,
+    // });
+
+    // Only update if the post ID actually changed (different post)
+    if (initialPost._id !== post._id) {
+      setPost(initialPost);
+    }
+  }, [initialPost._id, post._id]); // Only depend on IDs, not the full objects
 
   // Add memoized isLiked check
   const isLiked = useMemo(() => {
@@ -97,99 +112,6 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
       (like) => like.personalDetails?.username === user.username
     );
   }, [user?.username, post.likes]);
-
-  // Video player states
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const videoContainerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [showControls, setShowControls] = useState(false);
-  const progressBarRef = useRef<HTMLDivElement>(null);
-
-  // Intersection observer for video autoplay
-  useEffect(() => {
-    if (!videoRef.current || !videoContainerRef.current) return;
-
-    const options = {
-      root: null,
-      rootMargin: "0px",
-      threshold: 0.7, // 70% of video must be visible
-    };
-
-    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          videoRef.current?.play();
-          setIsPlaying(true);
-        } else {
-          videoRef.current?.pause();
-          setIsPlaying(false);
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(handleIntersect, options);
-    observer.observe(videoContainerRef.current);
-
-    return () => observer.disconnect();
-  }, []);
-
-  // Handle video progress updates
-  const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
-    const progress =
-      (videoRef.current.currentTime / videoRef.current.duration) * 100;
-    setProgress(progress);
-  };
-
-  // Video control handlers
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
-  };
-
-  const handleFullscreen = () => {
-    if (!videoContainerRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      videoContainerRef.current.requestFullscreen();
-    }
-  };
-
-  // Handle seeking
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!videoRef.current || !progressBarRef.current) return;
-
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percentage = (x / rect.width) * 100;
-    const time = (percentage / 100) * videoRef.current.duration;
-
-    videoRef.current.currentTime = time;
-    setProgress(percentage);
-  };
-
-  // Handle drag seeking
-  const handleDragStart = () => setIsDragging(true);
-  const handleDragEnd = () => setIsDragging(false);
-  const handleDrag = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
-    handleSeek(e);
-  };
 
   // Calculate aspect ratio for images
   const calculateAspectRatio = (url: string): Promise<number> => {
@@ -205,14 +127,23 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
     });
   };
 
-  // Update media with aspect ratios
+  // Sort media by priority: video > image > pdf
+  const sortMediaByPriority = (media: Media[]): Media[] => {
+    const priorityOrder = { video: 1, image: 2, pdf: 3 };
+    return [...media].sort((a, b) => {
+      return priorityOrder[a.type] - priorityOrder[b.type];
+    });
+  };
+
+  // Update media with aspect ratios and sort by priority
   useEffect(() => {
     const media = post.media || [];
     if (media.length === 0) return;
 
     const updateAspectRatios = async () => {
+      const sortedMedia = sortMediaByPriority(media);
       const updatedMedia = await Promise.all(
-        media.map(async (media) => {
+        sortedMedia.map(async (media) => {
           if (media.type === "image") {
             const aspectRatio = await calculateAspectRatio(
               media.file.asset.url
@@ -241,51 +172,167 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
   const displayContent = isExpanded ? post.content : post.content.slice(0, 180);
   const showTags = !shouldTruncate || isExpanded;
 
-  // Get media grid layout class and container classes based on number of items
+  // Enhanced media layout with video priority and show at least 3 items
   const getMediaLayout = (count: number, media: Media[], index: number) => {
-    // Base height for all layouts
-    const baseHeight = "h-[250px]";
-    const halfHeight = "h-[200px]";
+    // Check if current media is video
+    const isVideo = media[index]?.type === "video";
+    const hasVideo = media.some((m) => m.type === "video");
+    const firstIsVideo = media[0]?.type === "video"; // After sorting, video will be first if present
 
-    switch (count) {
-      case 1:
-        return {
-          gridClass: "grid-cols-1",
-          containerClass: baseHeight,
-        };
-      case 2:
-        // For 2 items, check aspect ratios to determine layout
-        const firstAspectRatio = media[0].aspectRatio || 1.33;
-        const secondAspectRatio = media[1].aspectRatio || 1.33;
-        const totalAspectRatio = firstAspectRatio + secondAspectRatio;
+    // Video-optimized heights
+    const videoHeight = "h-[400px]"; // Height for videos
+    const baseHeight = "h-[280px]"; // Regular height for images
+    const halfHeight = "h-[200px]"; // Height for second row
 
-        return {
-          gridClass: totalAspectRatio > 3.2 ? "grid-cols-1" : "grid-cols-2",
-          containerClass: baseHeight,
-        };
-      case 3:
-        return {
-          gridClass: "grid-cols-1",
-          containerClass: index === 0 ? baseHeight : halfHeight,
-          wrapperClass: index === 0 ? "" : "grid grid-cols-2 gap-2 mt-2",
-        };
-      case 4:
-        return {
-          gridClass: "grid-cols-2",
-          containerClass: halfHeight,
-        };
-      default:
-        return {
-          gridClass: "grid-cols-2",
-          containerClass: halfHeight,
-        };
+    // For 1-3 items, show all directly
+    if (count <= 3) {
+      switch (count) {
+        case 1:
+          return {
+            gridClass: "grid-cols-1",
+            containerClass: isVideo ? videoHeight : baseHeight,
+            showViewMore: false,
+            rowPosition: "single",
+          };
+        case 2:
+          // Since media is sorted, if there's a video it will be first
+          if (firstIsVideo) {
+            return {
+              gridClass: "grid-cols-1", // Stack vertically for video priority
+              containerClass: isVideo ? videoHeight : baseHeight,
+              showViewMore: false,
+              rowPosition: index === 0 ? "first-row" : "second-row",
+            };
+          }
+          // For non-video items, side by side
+          return {
+            gridClass: "grid-cols-2",
+            containerClass: baseHeight,
+            showViewMore: false,
+            rowPosition: "first-row",
+          };
+        case 3:
+          if (firstIsVideo) {
+            // Video full width in first row, 2 items in second row
+            if (index === 0) {
+              return {
+                gridClass: "grid-cols-1",
+                containerClass: videoHeight,
+                showViewMore: false,
+                rowPosition: "first-row",
+              };
+            } else {
+              return {
+                gridClass: "grid-cols-2",
+                containerClass: halfHeight,
+                showViewMore: false,
+                rowPosition: "second-row",
+              };
+            }
+          } else {
+            // No video, prioritize first item (image over pdf)
+            if (index === 0) {
+              return {
+                gridClass: "grid-cols-1",
+                containerClass: baseHeight,
+                showViewMore: false,
+                rowPosition: "first-row",
+              };
+            } else {
+              return {
+                gridClass: "grid-cols-2",
+                containerClass: halfHeight,
+                showViewMore: false,
+                rowPosition: "second-row",
+              };
+            }
+          }
+      }
     }
+
+    // For 4+ items, show first 3 and add view more
+    if (firstIsVideo) {
+      // Video full width + 2 items in second row (second item has overlay)
+      if (index === 0) {
+        return {
+          gridClass: "grid-cols-1",
+          containerClass: videoHeight,
+          showViewMore: false,
+          rowPosition: "first-row",
+        };
+      } else if (index === 1) {
+        return {
+          gridClass: "grid-cols-2",
+          containerClass: halfHeight,
+          showViewMore: false,
+          rowPosition: "second-row",
+        };
+      } else if (index === 2) {
+        return {
+          gridClass: "grid-cols-2",
+          containerClass: halfHeight,
+          showViewMore: true,
+          remainingCount: count - 3,
+          rowPosition: "second-row",
+        };
+      } else {
+        return {
+          gridClass: "hidden",
+          containerClass: "",
+          showViewMore: false,
+          rowPosition: "hidden",
+        };
+      }
+    } else {
+      // No video - first item large, second row with 2 items (second item has overlay)
+      if (index === 0) {
+        return {
+          gridClass: "grid-cols-1",
+          containerClass: baseHeight,
+          showViewMore: false,
+          rowPosition: "first-row",
+        };
+      } else if (index === 1) {
+        return {
+          gridClass: "grid-cols-2",
+          containerClass: halfHeight,
+          showViewMore: false,
+          rowPosition: "second-row",
+        };
+      } else if (index === 2) {
+        return {
+          gridClass: "grid-cols-2",
+          containerClass: halfHeight,
+          showViewMore: true,
+          remainingCount: count - 3,
+          rowPosition: "second-row",
+        };
+      } else {
+        return {
+          gridClass: "hidden",
+          containerClass: "",
+          showViewMore: false,
+          rowPosition: "hidden",
+        };
+      }
+    }
+
+    // Fallback
+    return {
+      gridClass: "grid-cols-1",
+      containerClass: baseHeight,
+      showViewMore: false,
+      rowPosition: "first-row",
+    };
   };
 
-  // Render media item based on type
-  const renderMediaItem = (media: Media, index: number, totalCount: number) => {
-    const isLast = index === totalCount - 1 && totalCount > 4;
-    const remainingCount = totalCount - 4;
+  // Render media item based on type with enhanced video handling
+  const renderMediaItem = (
+    media: Media,
+    index: number,
+    totalCount: number,
+    originalIndex?: number
+  ) => {
     const layout = getMediaLayout(totalCount, mediaItems, index);
     const containerClasses = `relative ${layout.containerClass} rounded-lg overflow-hidden`;
 
@@ -294,182 +341,114 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
       e.currentTarget.onerror = null;
     };
 
-    switch (media.type) {
-      case "image":
-        return (
-          <div
-            className={`${containerClasses} cursor-pointer group bg-gray-800`}
-            onClick={() => handleMediaClick(index)}
-          >
-            <Image
-              src={media.file.asset.url}
-              alt={media.altText || media.caption || `Media ${index + 1}`}
-              fill
-              className="object-cover transition-transform group-hover:scale-105"
-              onError={handleImageError}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority={index === 0}
-            />
-            {isLast && remainingCount > 0 && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                <span className="text-white text-2xl font-semibold">
-                  +{remainingCount}
-                </span>
-              </div>
-            )}
-          </div>
-        );
-      case "video":
-        return (
-          <div className={`${containerClasses} bg-gray-800 cursor-pointer`}>
-            {media.file.asset.url ? (
-              renderVideo(media)
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <Video className="w-12 h-12 text-gray-600" />
-                <span className="text-gray-400 text-sm mt-2">
-                  Video unavailable
-                </span>
-              </div>
-            )}
-          </div>
-        );
-      case "pdf":
-        return (
-          <div className={containerClasses}>
+    // Use original index for click handler if provided, otherwise use current index
+    const clickIndex = originalIndex !== undefined ? originalIndex : index;
+
+    const mediaContent = (() => {
+      switch (media.type) {
+        case "image":
+          return (
             <div
-              className="absolute inset-0 bg-gray-800 flex flex-col items-center justify-center group hover:bg-gray-700 transition-colors cursor-pointer"
-              onClick={() => handleMediaClick(index)}
+              className={`${containerClasses} cursor-pointer group bg-gray-800`}
+              onClick={() => handleMediaClick(clickIndex)}
             >
-              <FileText className="w-12 h-12 text-gray-400 group-hover:text-gray-300" />
-              {media.caption && (
-                <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-sm truncate">
-                  {media.caption}
-                </span>
+              <Image
+                src={media.file.asset.url}
+                alt={
+                  media.altText || media.caption || `Media ${clickIndex + 1}`
+                }
+                fill
+                className="object-cover transition-transform group-hover:scale-105"
+                onError={handleImageError}
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                priority={index === 0}
+              />
+            </div>
+          );
+        case "video":
+          return (
+            <div className={`${containerClasses} bg-gray-900`}>
+              {media.file.asset.url ? (
+                <OptimizedVideo
+                  src={media.file.asset.url}
+                  className=""
+                  onVideoClick={() => handleMediaClick(clickIndex)}
+                  autoPlay={false} // No autoplay in feed
+                  controls={true}
+                  muted={true}
+                  loop={true}
+                  showControlsOnHover={true}
+                  containerClassName="rounded-lg overflow-hidden"
+                />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <Video className="w-12 h-12 text-gray-600" />
+                  <span className="text-gray-400 text-sm mt-2">
+                    Video unavailable
+                  </span>
+                </div>
               )}
             </div>
-          </div>
-        );
-      default:
-        return (
-          <div
-            className={`${containerClasses} bg-gray-800 flex flex-col items-center justify-center`}
-          >
-            <File className="w-12 h-12 text-gray-600" />
-            <span className="text-gray-400 text-sm mt-2">
-              Unsupported media
-            </span>
-          </div>
-        );
-    }
-  };
-
-  // Update video rendering with enhanced controls
-  const renderVideo = (media: Media) => (
-    <div
-      ref={videoContainerRef}
-      className="absolute inset-0"
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => setShowControls(false)}
-    >
-      <video
-        ref={videoRef}
-        src={media.file.asset.url}
-        poster={media.file.asset.url}
-        className="w-full h-full object-cover"
-        controls={false}
-        playsInline
-        muted={isMuted}
-        loop
-        onTimeUpdate={handleTimeUpdate}
-        onError={(e) => {
-          console.error("Video loading error:", e);
-          setIsPlaying(false);
-        }}
-      >
-        <source src={media.file.asset.url} type="video/mp4" />
-        <source src={media.file.asset.url} type="video/webm" />
-        Your browser does not support the video tag.
-      </video>
-
-      {/* Enhanced video controls overlay */}
-      <div
-        className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 ${
-          showControls ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <div className="flex flex-col gap-2">
-          {/* Progress bar */}
-          <div
-            ref={progressBarRef}
-            className="flex-grow h-1.5 bg-white/30 rounded-full overflow-hidden cursor-pointer group"
-            onClick={handleSeek}
-            onMouseDown={handleDragStart}
-            onMouseUp={handleDragEnd}
-            onMouseLeave={handleDragEnd}
-            onMouseMove={handleDrag}
-          >
-            <div
-              className="h-full bg-white rounded-full transition-all duration-100 group-hover:bg-blue-400"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-
-          {/* Control buttons */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={togglePlay}
-              className="text-white hover:text-blue-400 transition-colors"
-              aria-label={isPlaying ? "Pause" : "Play"}
-            >
-              {isPlaying ? (
-                <Pause className="h-5 w-5" />
-              ) : (
-                <Play className="h-5 w-5" />
-              )}
-            </button>
-
-            <button
-              onClick={toggleMute}
-              className="text-white hover:text-blue-400 transition-colors"
-              aria-label={isMuted ? "Unmute" : "Mute"}
-            >
-              {isMuted ? (
-                <VolumeX className="h-5 w-5" />
-              ) : (
-                <Volume2 className="h-5 w-5" />
-              )}
-            </button>
-
-            {/* Time display */}
-            <div className="text-white text-sm flex-grow">
-              {videoRef.current && (
-                <>
-                  {formatTime(videoRef.current.currentTime)} /{" "}
-                  {formatTime(videoRef.current.duration)}
-                </>
-              )}
+          );
+        case "pdf":
+          return (
+            <div className={containerClasses}>
+              <div
+                className="absolute inset-0 bg-gray-800 flex flex-col items-center justify-center group hover:bg-gray-700 transition-colors cursor-pointer"
+                onClick={() => handleMediaClick(clickIndex)}
+              >
+                <FileText className="w-12 h-12 text-gray-400 group-hover:text-gray-300" />
+                {media.caption && (
+                  <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-sm truncate">
+                    {media.caption}
+                  </span>
+                )}
+              </div>
             </div>
-
-            <button
-              onClick={handleFullscreen}
-              className="text-white hover:text-blue-400 transition-colors"
-              aria-label="Toggle fullscreen"
+          );
+        default:
+          return (
+            <div
+              className={`${containerClasses} bg-gray-800 flex flex-col items-center justify-center`}
             >
-              <Maximize2 className="h-5 w-5" />
-            </button>
+              <File className="w-12 h-12 text-gray-600" />
+              <span className="text-gray-400 text-sm mt-2">
+                Unsupported media
+              </span>
+            </div>
+          );
+      }
+    })();
+
+    // Add view more overlay if needed
+    if (
+      layout.showViewMore &&
+      layout.remainingCount &&
+      layout.remainingCount > 0
+    ) {
+      return (
+        <div className="relative">
+          {mediaContent}
+          <div
+            className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors"
+            onClick={() => handleMediaClick(clickIndex)}
+          >
+            <div className="text-center text-white">
+              <span className="text-2xl font-semibold">
+                +{layout.remainingCount}
+              </span>
+              <div className="text-sm mt-1">
+                {layout.remainingCount === 1
+                  ? "View 1 more"
+                  : `View ${layout.remainingCount} more`}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
+      );
+    }
 
-  // Helper function to format time
-  const formatTime = (seconds: number): string => {
-    if (!seconds || isNaN(seconds)) return "0:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+    return mediaContent;
   };
 
   const handleAuthorClick = (e: React.MouseEvent) => {
@@ -478,6 +457,13 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
   };
 
   const handleLike = async () => {
+    // console.log("❤️ Like operation started:", {
+    //   postId: post._id,
+    //   userId: user?.id,
+    //   currentLikes: post.likes.length,
+    //   isCurrentlyLiked: isLiked,
+    // });
+
     if (!user?.id || !user?.username) return;
 
     // Create optimistic like object
@@ -510,15 +496,26 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
       likes: updatedLikes,
     };
 
+    // console.log("🎯 Optimistic update applied:", {
+    //   postId: post._id,
+    //   oldLikes: post.likes.length,
+    //   newLikes: updatedLikes.length,
+    //   action: isLiked ? "unlike" : "like",
+    // });
+
     // Update the UI immediately
     setPost(updatedPost);
 
     try {
-      // Make the backend call
-      await likePost(post._id, user.id);
+      // Make the backend call (this won't trigger data refetch anymore)
+      // console.log("🌐 Making backend call...");
+      await likePostAction(post._id, user.id);
+      // console.log("✅ Backend call successful");
+      // Success! Backend is updated, UI is already correct
     } catch (error) {
       // If there's an error, revert the optimistic update
-      console.error("Error handling like:", error);
+      // console.error("❌ Error handling like:", error);
+      // console.log("🔄 Reverting optimistic update");
       setPost(post); // Revert to original state
     }
   };
@@ -615,35 +612,99 @@ export function PostCard({ post: initialPost, className }: PostCardProps) {
           )}
         </div>
 
-        {/* Media Section */}
+        {/* Enhanced Media Section with video priority and 2-row layout */}
         {mediaItems.length > 0 && (
           <div className="mt-4 rounded-xl overflow-hidden">
-            {mediaItems.length === 3 ? (
-              // Special layout for 3 items
-              <div className="space-y-2">
-                {renderMediaItem(mediaItems[0], 0, 3)}
-                <div className="grid grid-cols-2 gap-2">
-                  {mediaItems.slice(1).map((media, idx) => (
-                    <div key={idx + 1}>
-                      {renderMediaItem(media, idx + 1, 3)}
+            {(() => {
+              const firstIsVideo = mediaItems[0]?.type === "video";
+              const hasVideo = mediaItems.some((m) => m.type === "video");
+
+              // Create mapping from sorted media to original indices
+              const originalMedia = post.media || [];
+              const mediaWithOriginalIndices = mediaItems.map((sortedMedia) => {
+                const originalIndex = originalMedia.findIndex(
+                  (originalMedia) =>
+                    originalMedia.file.asset.url ===
+                      sortedMedia.file.asset.url &&
+                    originalMedia.type === sortedMedia.type
+                );
+                return { media: sortedMedia, originalIndex };
+              });
+
+              // Group media items by rows based on layout logic
+              const firstRowItems: {
+                media: Media;
+                index: number;
+                originalIndex: number;
+              }[] = [];
+              const secondRowItems: {
+                media: Media;
+                index: number;
+                originalIndex: number;
+              }[] = [];
+
+              mediaWithOriginalIndices.forEach(
+                ({ media, originalIndex }, index) => {
+                  const layout = getMediaLayout(
+                    mediaItems.length,
+                    mediaItems,
+                    index
+                  );
+                  if (
+                    layout.rowPosition === "first-row" ||
+                    layout.rowPosition === "single"
+                  ) {
+                    firstRowItems.push({ media, index, originalIndex });
+                  } else if (layout.rowPosition === "second-row") {
+                    secondRowItems.push({ media, index, originalIndex });
+                  }
+                }
+              );
+
+              return (
+                <div className="space-y-2">
+                  {/* First Row */}
+                  {firstRowItems.length > 0 && (
+                    <div
+                      className={`grid gap-2 ${
+                        firstRowItems.length === 1
+                          ? "grid-cols-1"
+                          : firstRowItems.length === 2 && !hasVideo
+                            ? "grid-cols-2"
+                            : "grid-cols-1"
+                      }`}
+                    >
+                      {firstRowItems.map(({ media, index, originalIndex }) => (
+                        <div key={`first-${index}`}>
+                          {renderMediaItem(
+                            media,
+                            index,
+                            mediaItems.length,
+                            originalIndex
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Second Row */}
+                  {secondRowItems.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {secondRowItems.map(({ media, index, originalIndex }) => (
+                        <div key={`second-${index}`}>
+                          {renderMediaItem(
+                            media,
+                            index,
+                            mediaItems.length,
+                            originalIndex
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : (
-              // Default grid layout for other counts
-              <div
-                className={`grid ${getMediaLayout(mediaItems.length, mediaItems, 0).gridClass} gap-2`}
-              >
-                {mediaItems
-                  .slice(0, mediaItems.length > 4 ? 4 : mediaItems.length)
-                  .map((media, index) => (
-                    <div key={index}>
-                      {renderMediaItem(media, index, mediaItems.length)}
-                    </div>
-                  ))}
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 

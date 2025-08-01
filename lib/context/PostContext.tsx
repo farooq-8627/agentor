@@ -1,5 +1,11 @@
 "use client";
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
 import { Post, PostFilter, Like } from "@/types/post";
 import { postQueries } from "../queries/post";
 import { client } from "@/sanity/lib/client";
@@ -49,87 +55,138 @@ export function usePost() {
 }
 
 export function PostProvider({ children }: { children: React.ReactNode }) {
+  console.log("🔄 PostProvider render");
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [achievementPosts, setAchievementPosts] = useState<Post[]>([]);
   const [latestPosts, setLatestPosts] = useState<Post[]>([]);
   const [popularPosts, setPopularPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Changed from true to false
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false); // Track if data has been loaded
 
-  const fetchPosts = useCallback(async (filter?: PostFilter) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const fetchedPosts = await client.fetch(postQueries.getAllPosts(filter));
-      setPosts(fetchedPosts);
-    } catch (err) {
-      setError("Failed to fetch posts");
-      console.error("Error fetching posts:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Log state changes
+  useEffect(() => {
+    console.log("📊 PostContext state changed:", {
+      postsLength: posts.length,
+      userPostsLength: userPosts.length,
+      achievementPostsLength: achievementPosts.length,
+      latestPostsLength: latestPosts.length,
+      popularPostsLength: popularPosts.length,
+      loading,
+      error: !!error,
+      isInitialized,
+    });
+  }, [
+    posts,
+    userPosts,
+    achievementPosts,
+    latestPosts,
+    popularPosts,
+    loading,
+    error,
+    isInitialized,
+  ]);
 
-  const fetchUserPosts = useCallback(async (username: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const fetchedPosts = await client.fetch(
-        postQueries.getUserPosts(username)
-      );
-      setUserPosts(fetchedPosts);
-    } catch (err) {
-      setError("Failed to fetch user posts");
-      console.error("Error fetching user posts:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Only fetch posts on first mount or manual refresh, not on updates
+  const fetchPosts = useCallback(
+    async (filter?: PostFilter) => {
+      if (loading) return; // Prevent concurrent fetches
 
-  const fetchAchievementPosts = useCallback(async (username: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const fetchedPosts = await client.fetch(
-        postQueries.getUserAchievements(username)
-      );
-      setAchievementPosts(fetchedPosts);
-    } catch (err) {
-      setError("Failed to fetch achievement posts");
-      console.error("Error fetching achievement posts:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await client.fetch(postQueries.getAllPosts(filter));
+        setPosts(result);
+        setIsInitialized(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch posts");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loading]
+  );
+
+  // Fetch user posts (for dashboards - should refresh immediately)
+  const fetchUserPosts = useCallback(
+    async (username: string) => {
+      if (loading) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await client.fetch(postQueries.getUserPosts(username));
+        setUserPosts(result);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch user posts"
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loading]
+  );
+
+  const fetchAchievementPosts = useCallback(
+    async (username: string) => {
+      if (loading) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await client.fetch(
+          postQueries.getUserAchievements(username)
+        );
+        setAchievementPosts(result);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to fetch achievement posts"
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loading]
+  );
 
   const fetchLatestPosts = useCallback(async () => {
+    if (loading) return;
+
     try {
       setLoading(true);
       setError(null);
-      const fetchedPosts = await client.fetch(postQueries.getLatestPosts());
-      setLatestPosts(fetchedPosts);
+      const result = await client.fetch(postQueries.getLatestPosts());
+      setLatestPosts(result);
     } catch (err) {
-      setError("Failed to fetch latest posts");
-      console.error("Error fetching latest posts:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch latest posts"
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loading]);
 
   const fetchPopularPosts = useCallback(async () => {
+    if (loading) return;
+
     try {
       setLoading(true);
       setError(null);
-      const fetchedPosts = await client.fetch(postQueries.getPopularPosts());
-      setPopularPosts(fetchedPosts);
+      const result = await client.fetch(postQueries.getPopularPosts());
+      setPopularPosts(result);
     } catch (err) {
-      setError("Failed to fetch popular posts");
-      console.error("Error fetching popular posts:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch popular posts"
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loading]);
 
   const createPost = useCallback(
     async (postData: Partial<Post>) => {
@@ -200,11 +257,9 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
           throw new Error(result.error || "Failed to like/unlike post");
         }
 
-        // Fetch updated post to get the new likes
-        const updatedPost = await client.fetch(postQueries.getPostById(postId));
-        if (updatedPost) {
-          updatePostLikesInState(postId, updatedPost.likes);
-        }
+        // Don't fetch updated post - the optimistic update in PostCard is sufficient
+        // This prevents unnecessary re-renders and data fetching
+        // The backend has been updated, local state is already correct from optimistic update
       } catch (err) {
         console.error("Error in likePost:", err);
         setError(
@@ -212,7 +267,7 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
         );
       }
     },
-    [updatePostLikesInState]
+    [] // No dependencies needed since we're not fetching data
   );
 
   const unlikePost = useCallback(

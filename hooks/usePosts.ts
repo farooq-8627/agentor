@@ -11,6 +11,13 @@ interface UsePostsOptions {
 }
 
 export function usePosts(options: UsePostsOptions = {}) {
+  // console.log("🔄 usePosts hook called:", {
+  //   search: options.search,
+  //   sort: options.sort,
+  //   authorTypes: options.authorTypes,
+  //   timestamp: new Date().toISOString()
+  // });
+
   const { search = "", sort, authorTypes = [] } = options;
   const {
     posts,
@@ -38,7 +45,7 @@ export function usePosts(options: UsePostsOptions = {}) {
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [isFiltering, setIsFiltering] = useState(false);
 
-  // Auto-fetch posts when hook is first used
+  // Auto-fetch posts when hook is first used - ONLY on mount
   useEffect(() => {
     const initialFetch = async () => {
       try {
@@ -50,7 +57,7 @@ export function usePosts(options: UsePostsOptions = {}) {
       }
     };
 
-    // Only fetch if we don't have posts already
+    // Only fetch if we don't have posts already AND not loading
     if (
       posts.length === 0 &&
       latestPosts.length === 0 &&
@@ -59,15 +66,18 @@ export function usePosts(options: UsePostsOptions = {}) {
     ) {
       initialFetch();
     }
-  }, [
-    originalFetchPosts,
-    originalFetchLatestPosts,
-    originalFetchPopularPosts,
-    posts.length,
-    latestPosts.length,
-    popularPosts.length,
-    loading,
-  ]);
+  }, []); // Remove all dependencies - only run on mount
+
+  // Manual refresh function that can be called explicitly
+  const manualRefresh = useCallback(async () => {
+    try {
+      await originalFetchPosts();
+      await originalFetchLatestPosts();
+      await originalFetchPopularPosts();
+    } catch (error) {
+      console.error("Error in manual refresh:", error);
+    }
+  }, [originalFetchPosts, originalFetchLatestPosts, originalFetchPopularPosts]);
 
   // Memoized filter query string - ONLY memoizes the query string, not the fetch
   const filteredQuery = useMemo(() => {
@@ -360,5 +370,6 @@ export function usePosts(options: UsePostsOptions = {}) {
     handleAddComment,
     handleDeleteComment,
     handleEditComment,
+    manualRefresh,
   };
 }

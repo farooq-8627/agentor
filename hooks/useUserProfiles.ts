@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { createClient } from "@sanity/client";
 import { useUser as useClerkUser } from "@clerk/nextjs";
 
@@ -94,17 +94,40 @@ export interface UserProfiles {
 }
 
 export function useUserProfiles(): UserProfiles {
+  console.log("🔄 useUserProfiles hook called");
+
   const { user } = useClerkUser();
-  const [profiles, setProfiles] = useState<Omit<UserProfiles, "refetch">>({
+  const [profiles, setProfiles] = useState<{
+    agentProfiles: [];
+    clientProfiles: [];
+    loading: boolean;
+    error: string | null;
+  }>({
     agentProfiles: [],
     clientProfiles: [],
-    loading: true,
+    loading: false, // Start with false to prevent initial loading
     error: null,
   });
+  const [lastUserId, setLastUserId] = useState<string | null>(null);
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = useCallback(async () => {
+    console.log("🌐 useUserProfiles: fetchProfiles called:", {
+      userId: user?.id,
+      lastUserId,
+      hasExistingData: profiles.agentProfiles.length > 0,
+    });
+
     if (!user?.id) {
+      console.log("❌ useUserProfiles: No user ID, skipping fetch");
       setProfiles((prev) => ({ ...prev, loading: false }));
+      return;
+    }
+
+    // Skip if we already have data for this user
+    if (lastUserId === user.id && profiles.agentProfiles.length > 0) {
+      console.log(
+        "✅ useUserProfiles: Skipping fetch - already have data for user"
+      );
       return;
     }
 
@@ -203,6 +226,7 @@ export function useUserProfiles(): UserProfiles {
           loading: false,
           error: null,
         });
+        setLastUserId(user.id);
       } else {
         setProfiles({
           agentProfiles: [],
@@ -210,6 +234,7 @@ export function useUserProfiles(): UserProfiles {
           loading: false,
           error: null,
         });
+        setLastUserId(user.id);
       }
     } catch (error) {
       setProfiles((prev) => ({
@@ -219,11 +244,21 @@ export function useUserProfiles(): UserProfiles {
           error instanceof Error ? error.message : "Failed to fetch profiles",
       }));
     }
-  };
+  }, [user?.id]); // Remove lastUserId and profiles.agentProfiles.length from dependencies
 
   useEffect(() => {
-    fetchProfiles();
-  }, [user?.id]);
+    console.log("🔄 useUserProfiles useEffect triggered:", {
+      userId: user?.id,
+      lastUserId,
+      shouldFetch: !!(user?.id && user.id !== lastUserId),
+    });
+
+    // Only fetch if user exists and we haven't fetched for this user yet
+    if (user?.id && user.id !== lastUserId) {
+      console.log("🚀 useUserProfiles: Triggering fetchProfiles");
+      fetchProfiles();
+    }
+  }, [user?.id, fetchProfiles]); // Simplified dependencies
 
   return {
     ...profiles,

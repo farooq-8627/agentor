@@ -34,6 +34,7 @@ import { useUser } from "@clerk/nextjs";
 import { Author, Like } from "@/types/post";
 import { client } from "@/sanity/lib/client";
 import { postQueries } from "@/lib/queries/post";
+import { OptimizedVideo } from "@/components/shared/OptimizedVideo";
 
 interface Comment {
   _key: string;
@@ -344,18 +345,16 @@ export function PostModal({
         );
       case "video":
         return (
-          <div className="relative w-full h-full">
-            <video
-              src={currentMedia.file.asset.url}
-              className="w-full h-full object-contain bg-black"
-              controls
-              autoPlay={false}
-              loop
-            >
-              <source src={currentMedia.file.asset.url} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
+          <OptimizedVideo
+            src={currentMedia.file.asset.url}
+            className=""
+            autoPlay={false}
+            controls={true}
+            muted={true}
+            loop={true}
+            showControlsOnHover={true}
+            containerClassName=""
+          />
         );
       case "pdf":
         return (

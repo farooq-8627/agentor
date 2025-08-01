@@ -8,6 +8,10 @@ import { RecommendationSidebar } from "@/components/recommendations/Recommendati
 import { Post } from "@/types/post";
 
 export default function FeedPage() {
+  // console.log("🔄 FeedPage render:", {
+  //   timestamp: new Date().toISOString()
+  // });
+
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<{ field: string; order: "asc" | "desc" }>({
     field: "createdAt",
@@ -28,7 +32,14 @@ export default function FeedPage() {
     fetchLatestPosts,
     fetchPopularPosts,
     fetchAchievementPosts,
+    manualRefresh, // Add manual refresh capability
   } = usePosts({ search, sort, authorTypes });
+
+  // Only fetch data on mount, not on filter changes
+  // Filtering happens client-side for better performance
+  useEffect(() => {
+    // This will only run once on mount due to usePosts optimization
+  }, []); // Empty dependency array
 
   // Transform Sanity post data to match PostCard component's expected format
   const transformPost = useCallback((post: Post) => {

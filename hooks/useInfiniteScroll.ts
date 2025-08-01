@@ -66,6 +66,13 @@ export function useInfiniteScroll<T>({
 
   const reset = useCallback(
     (newData: T[]) => {
+      console.log("🔄 useInfiniteScroll reset called:", {
+        newDataLength: newData.length,
+        initialBatchSize,
+        willShow: Math.min(initialBatchSize, newData.length),
+        stackTrace: new Error().stack?.split("\n").slice(1, 4),
+      });
+
       if (process.env.NODE_ENV === "development") {
         console.log("🔄 Resetting infinite scroll:", {
           newDataLength: newData.length,

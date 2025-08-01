@@ -131,6 +131,11 @@ export const RecommendationSidebar: React.FC<RecommendationSidebarProps> =
       showHeader = true,
       loading: externalLoading = false,
     }) => {
+      console.log("🔄 RecommendationSidebar render:", {
+        externalLoading,
+        timestamp: new Date().toISOString(),
+      });
+
       const { user: currentUser } = useUser();
       const { agentProfiles, clientProfiles } = useUserProfiles();
       const [isSticky, setIsSticky] = useState(false);
@@ -171,12 +176,20 @@ export const RecommendationSidebar: React.FC<RecommendationSidebarProps> =
       // Combined loading state
       const isLoading = externalLoading || internalLoading;
 
-      // Load recommendations on mount
+      // Load recommendations on mount - only if user data exists and we don't have recommendations
       useEffect(() => {
-        if (userForRecommendations && !globalRecommendations) {
+        if (
+          userForRecommendations &&
+          !globalRecommendations &&
+          !globalLoading
+        ) {
           loadRecommendations();
         }
-      }, [userForRecommendations, loadRecommendations]);
+      }, [
+        userForRecommendations?.hasAgentProfile,
+        userForRecommendations?.hasClientProfile,
+        userForRecommendations?._id,
+      ]); // Only depend on core user identity, not the full object
 
       // Enhanced refresh function
       const handleRefresh = useCallback(() => {
